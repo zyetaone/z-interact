@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	export let data: PageData;
 
 	const images = $state(data.images || []);
 
