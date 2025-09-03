@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { personas, type Persona, type PromptFields } from '$lib/personas';
+	import type { PromptFields, Persona, Table } from '$lib/config';
 	import { workspaceStore } from '$lib/stores/workspace.svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button } from '$lib/components/ui';
+	import { config } from '$lib/config';
 
-	const personaId = $page.params.personaId;
-	const persona = personas.find(p => p.id === personaId);
+	export let data: { table: Table; persona: Persona };
 
-	// Redirect if persona not found
-	if (!persona) {
-		goto('/');
-	}
+	const { table, persona } = data;
 
 	// Form state
 	let formData = $state<PromptFields>({
@@ -43,13 +40,14 @@
 
 	function validateForm(): boolean {
 		const newErrors: Partial<PromptFields> = {};
-		
+
 		for (const [key, value] of Object.entries(formData)) {
 			if (!value || value.length < 10) {
-				newErrors[key as keyof PromptFields] = 'Please provide a more detailed description (at least 10 characters).';
+				newErrors[key as keyof PromptFields] =
+					'Please provide a more detailed description (at least 10 characters).';
 			}
 		}
-		
+
 		errors = newErrors;
 		return Object.keys(newErrors).length === 0;
 	}
@@ -58,6 +56,7 @@
 		if (!validateForm() || !persona) return;
 
 		const promptParts = [
+			config.masterSystemPrompt,
 			persona.promptPreamble,
 			`A workspace designed for ${formData.identity}.`,
 			`Their values are ${formData.values}.`,
@@ -65,17 +64,17 @@
 			`The environment looks like ${formData.aesthetic}.`,
 			`It features ${formData.features}.`,
 			`Designed to feel ${formData.vibe}.`,
-			persona.promptPostamble,
+			persona.promptPostamble
 		];
 		const finalPrompt = promptParts.join('\n');
 
 		try {
 			const imageUrl = await workspaceStore.generateImage(persona.id, finalPrompt);
 			generatedImage = imageUrl;
-			toastStore.success('Image generated successfully!');
+			ttoastStore.success('Image generated successfully!');
 		} catch (error) {
 			console.error('Image generation failed:', error);
-			toastStore.error('Failed to generate image. Please try again.');
+			ttoastStore.error('Failed to generate image. Please try again.');
 		}
 	}
 
@@ -90,11 +89,12 @@
 			`The environment looks like ${formData.aesthetic}.`,
 			`It features ${formData.features}.`,
 			`Designed to feel ${formData.vibe}.`,
-			persona.promptPostamble,
+			persona.promptPostamble
 		];
 
 		try {
 			await workspaceStore.lockImage({
+				tableId: table.id,
 				personaId: persona.id,
 				personaTitle: persona.title,
 				imageUrl: generatedImage,
@@ -103,10 +103,10 @@
 			});
 
 			isLocked = true;
-			toastStore.success('Image locked in successfully! View it on the presenter dashboard.');
+			ttoastStore.success('Image locked in successfully! View it on the presenter dashboard.');
 		} catch (error) {
 			console.error('Failed to lock image:', error);
-			toastStore.error('Failed to lock image. Please try again.');
+			ttoastStore.error('Failed to lock image. Please try again.');
 		}
 	}
 
@@ -136,7 +136,7 @@
 			<p class="text-slate-600 mb-6">
 				Your workspace image has been submitted. You can view it on the main presenter screen.
 			</p>
-			
+
 			{#if generatedImage}
 				<div class="rounded-lg overflow-hidden shadow-lg mb-6">
 					<img
@@ -146,7 +146,7 @@
 					/>
 				</div>
 			{/if}
-			
+
 			<div class="flex gap-2 justify-center">
 				<Button onclick={() => goto('/')} variant="outline">
 					← Back to QR Codes
@@ -163,7 +163,7 @@
 		<div class="container mx-auto max-w-6xl">
 			<!-- Header -->
 			<header class="text-center mb-10">
-				<h1 class="text-3xl font-bold text-slate-900">{persona.title}</h1>
+				<h1 class="text-3xl font-bold text-slate-900">{table.displayName}: {persona.title}</h1>
 				<p class="text-slate-600 mt-1 text-lg">{persona.description}</p>
 			</header>
 
@@ -172,7 +172,7 @@
 				<div class="bg-white rounded-xl shadow-lg p-6">
 					<h2 class="text-xl font-bold mb-2 text-slate-900">Describe Your Workspace</h2>
 					<p class="text-slate-600 mb-6">Collaborate with your table to fill in the details below.</p>
-					
+
 					<form onsubmit={(e) => { e.preventDefault(); generateImage(); }} class="space-y-6">
 						{#each persona.promptStructure as { label, field }}
 							<div>
@@ -191,32 +191,32 @@
 									<p class="mt-1 text-sm text-red-600">{errors[field]}</p>
 								{/if}
 							</div>
-						{/each}
-						
-						<Button 
-							type="submit" 
-							disabled={isGenerating}
-							variant="default"
-							class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-						>
-							{#if isGenerating}
-								<div class="flex items-center justify-center">
-									<div class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-									Generating...
-								</div>
-							{:else}
-								✨ Generate Image
-							{/if}
-						</Button>
-					</form>
+							{/each}
+
+							<Button
+								type="submit"
+								disabled={isGenerating}
+								variant="default"
+								class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
+							>
+								{#if isGenerating}
+									<div class="flex items-center justify-center">
+										<div class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+										Generating...
+									</div>
+								{:else}
+									✨ Generate Image
+								{/if}
+							</Button>
+						</form>
 				</div>
-				
+
 				<!-- Preview Section -->
 				<div class="lg:sticky top-8">
 					<div class="bg-white rounded-xl shadow-lg p-6">
 						<h2 class="text-xl font-bold mb-2 text-slate-900">Generated Workspace</h2>
 						<p class="text-slate-600 mb-4">Your AI-generated image will appear here.</p>
-						
+
 						<div class="aspect-video bg-slate-100 rounded-lg flex items-center justify-center border-2 border-dashed border-slate-300">
 							{#if isGenerating}
 								<div class="flex flex-col items-center gap-2 text-slate-500">
@@ -236,18 +236,18 @@
 								</div>
 							{/if}
 						</div>
-						
+
 						{#if generatedImage && !isGenerating}
 							<div class="flex flex-col sm:flex-row gap-2 mt-4">
-								<Button 
-									onclick={generateImage} 
+								<Button
+									onclick={generateImage}
 									variant="outline"
 									class="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50"
 									disabled={isGenerating}
 								>
 									✨ Regenerate
 								</Button>
-								<Button 
+								<Button
 									onclick={lockInImage}
 									class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
 									disabled={isGenerating}

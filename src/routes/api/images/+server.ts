@@ -49,13 +49,14 @@ export async function POST({ request, platform }) {
 
 		const body = await request.json();
 		console.log('🔍 Request body received:', { 
+			hasTableId: !!body.tableId,
 			hasPersonaId: !!body.personaId,
 			hasPersonaTitle: !!body.personaTitle,
 			hasPrompt: !!body.prompt,
 			hasImageUrl: !!body.imageUrl
 		});
 
-		if (!body.personaId || !body.personaTitle || !body.prompt) {
+		if (!body.tableId || !body.personaId || !body.personaTitle || !body.prompt) {
 			console.error('❌ Missing required fields in request body');
 			return json({ error: 'Missing required fields' }, { status: 400 });
 		}
@@ -64,6 +65,7 @@ export async function POST({ request, platform }) {
 
 		const newImage: NewImage = {
 			id: crypto.randomUUID(),
+			tableId: body.tableId,
 			personaId: body.personaId,
 			personaTitle: body.personaTitle,
 			imageUrl: body.imageUrl || null,

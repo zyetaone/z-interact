@@ -29,6 +29,16 @@ export interface AppConfig {
 	tables: Table[];
 }
 
+export interface LockedImage {
+	tableId: string;
+	personaId: string;
+	personaTitle: string;
+	imageUrl: string;
+	prompt: string;
+	lockedAt: string;
+}
+
+
 export const config: AppConfig = {
 	masterSystemPrompt:
 		'You are an expert interior designer creating inspirational concepts for office workspaces. Generate a photorealistic image based on the following detailed description. The image should be a wide-angle interior perspective, with cinematic lighting and ultra-detailed textures.',

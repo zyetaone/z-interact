@@ -1,4 +1,4 @@
-import type { LockedImage } from '$lib/personas';
+import type { LockedImage } from '$lib/config';
 
 // Store with database persistence
 class WorkspaceStore {
@@ -34,6 +34,7 @@ class WorkspaceStore {
 			if (response.ok) {
 				const images = await response.json();
 				this.lockedImages = images.map((img: any) => ({
+					tableId: img.tableId,
 					personaId: img.personaId,
 					personaTitle: img.personaTitle,
 					imageUrl: img.imageUrl,
@@ -89,7 +90,7 @@ class WorkspaceStore {
 			const response = await fetch('/api/generate-image', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({ prompt, personaId })
 			});
