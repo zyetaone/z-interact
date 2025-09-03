@@ -1,4 +1,5 @@
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
+import { drizzle as drizzleLibSQL } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
@@ -10,18 +11,20 @@ function createLocalDb() {
 	if (!localDb) {
 		const databaseUrl = env.DATABASE_URL || 'file:./local.db';
 		const client = createClient({ url: databaseUrl });
-		localDb = drizzle(client, { schema });
+		localDb = drizzleLibSQL(client, { schema });
 	}
 	return localDb;
 }
 
 // Main database function - always use this
 export function getDb(platform?: any) {
-	// In Cloudflare Workers, use D1 binding
+	// In Cloudflare Workers, use D1 binding with correct adapter
 	if (platform?.env?.z_interact_db) {
-		return drizzle(platform.env.z_interact_db, { schema });
+		console.log('🔄 Using D1 database connection');
+		return drizzleD1(platform.env.z_interact_db, { schema });
 	}
 	
+	console.log('🔄 Using local database connection');
 	// For development/local, use libsql client
 	return createLocalDb();
 }
