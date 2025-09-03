@@ -17,49 +17,55 @@
 
 	// Initialize reactive state from stores
 	$effect(() => {
-		// Get current values from stores
-		galleryImages.subscribe(current => images = current)();
-		isGalleryLoading.subscribe(current => isLoading = current)();
-		galleryError.subscribe(current => error = current)();
-		galleryStats.subscribe(current => stats = current)();
+		// Subscribe to store changes
+		const unsubImages = galleryImages.subscribe(current => images = current);
+		const unsubLoading = isGalleryLoading.subscribe(current => isLoading = current);
+		const unsubError = galleryError.subscribe(current => error = current);
+		const unsubStats = galleryStats.subscribe(current => stats = current);
+
+		return () => {
+			unsubImages();
+			unsubLoading();
+			unsubError();
+			unsubStats();
+		};
 	});
 
-	$effect(() => {
-		if (typeof window !== 'undefined') {
-			// Initialize gallery store
-			galleryActions.initialize();
+	// Initialize gallery on mount
+	onMount(async () => {
+		// Initialize gallery store
+		await galleryActions.initialize();
 
-			// Set up SSE for real-time updates
-			sseClient.connect();
+		// Set up SSE for real-time updates
+		sseClient.connect();
 
-			// Listen for new images
-			sseClient.on('image_locked', (event) => {
-				console.log('🆕 New image locked:', event.data);
-				// Convert to gallery format and add
-				const newImage = {
-					id: event.data.id,
-					personaId: event.data.personaId,
-					personaTitle: event.data.personaTitle,
-					imageUrl: event.data.imageUrl,
-					prompt: event.data.prompt,
-					provider: event.data.provider,
-					createdAt: event.data.createdAt,
-					isLoading: false,
-					error: null
-				};
-				galleryActions.addImage(newImage);
-				toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
-			});
-
-			// Listen for connection status
-			sseClient.on('connected', (event) => {
-				console.log('🔗 Connected to real-time updates');
-			});
-
-			return () => {
-				sseClient.disconnect();
+		// Listen for new images
+		sseClient.on('image_locked', (event) => {
+			console.log('🆕 New image locked:', event.data);
+			// Convert to gallery format and add
+			const newImage = {
+				id: event.data.id,
+				personaId: event.data.personaId,
+				personaTitle: event.data.personaTitle,
+				imageUrl: event.data.imageUrl,
+				prompt: event.data.prompt,
+				provider: event.data.provider,
+				createdAt: event.data.createdAt,
+				isLoading: false,
+				error: null
 			};
-		}
+			galleryActions.addImage(newImage);
+			toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
+		});
+
+		// Listen for connection status
+		sseClient.on('connected', (event) => {
+			console.log('🔗 Connected to real-time updates');
+		});
+
+		return () => {
+			sseClient.disconnect();
+		};
 	});
 
 	onMount(() => {
@@ -113,6 +119,12 @@
 	// Navigate to individual image page
 	function viewImage(image: any) {
 		goto(`/gallery/${image.id}`);
+	}
+
+	// Handle image loading errors
+	function handleImageError(imageId: string) {
+		console.warn(`Failed to load image: ${imageId}`);
+		galleryActions.setImageError(imageId, 'Failed to load image');
 	}
 </script>
 

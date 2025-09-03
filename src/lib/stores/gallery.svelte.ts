@@ -59,9 +59,20 @@ export const galleryActions = {
 		}
 	},
 
-	// Add new image
+	// Add new image (prevent duplicates)
 	addImage(image: GalleryImage) {
-		galleryImages.update(images => [image, ...images]);
+		galleryImages.update(images => {
+			// Check if image already exists
+			const existingIndex = images.findIndex(img => img.id === image.id);
+			if (existingIndex >= 0) {
+				// Update existing image
+				images[existingIndex] = image;
+				return [...images];
+			} else {
+				// Add new image at the beginning
+				return [image, ...images];
+			}
+		});
 		lastUpdate.set(new Date());
 	},
 
