@@ -7,5 +7,6 @@ export default defineConfig({
 		url: process.env.DATABASE_URL || 'file:./local.db'
 	},
 	verbose: true,
-	strict: true
+	strict: true,
+	out: './drizzle'
 });
