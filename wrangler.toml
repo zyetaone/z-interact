@@ -3,8 +3,27 @@ compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
+# D1 Database binding
 [[d1_databases]]
 binding = "z_interact_db"
 database_name = "z-interact-db"
 database_id = "42c899ea-ff0f-4c9e-adfd-bcd3a4ae4ffa"
 migrations_dir = "drizzle"
+
+# R2 Bucket binding for image storage
+[[r2_buckets]]
+binding = "R2_IMAGES"
+bucket_name = "z-interact-images"
+
+# Environment variables
+[vars]
+# R2 Configuration
+R2_PUBLIC_URL = "https://images.z-interact.com"  # Replace with your custom domain or r2.dev URL
+ENABLE_R2_STORAGE = "true"  # R2 storage is now enabled with fallback to base64
+MIGRATION_BATCH_SIZE = "10"
+
+# Optional: R2 bucket configuration for development
+# Uncomment and configure these for local development with r2.dev
+# R2_ACCESS_KEY_ID = "your-r2-access-key-id"
+# R2_SECRET_ACCESS_KEY = "your-r2-secret-access-key"
+# R2_ACCOUNT_ID = "your-cloudflare-account-id"

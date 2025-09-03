@@ -5,6 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:wrangler": "wrangler pages dev .svelte-kit/cloudflare --compatibility-date=2024-01-01",
+		"dev:local": "npm run build && wrangler pages dev .svelte-kit/cloudflare --compatibility-date=2024-01-01 --live-reload",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -15,7 +17,9 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"r2:setup": "./scripts/setup-r2.sh",
+		"r2:test": "node scripts/test-r2.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
