@@ -18,13 +18,30 @@ function createLocalDb() {
 
 // Main database function - always use this
 export function getDb(platform?: any) {
+	// Debug logging for production issues
+	console.log('🔍 getDb called with platform:', {
+		hasPlatform: !!platform,
+		hasEnv: !!platform?.env,
+		hasD1Binding: !!platform?.env?.z_interact_db,
+		envKeys: platform?.env ? Object.keys(platform.env).filter(k => k !== 'z_interact_db') : [],
+		d1BindingType: typeof platform?.env?.z_interact_db
+	});
+
 	// In Cloudflare Workers, use D1 binding with correct adapter
 	if (platform?.env?.z_interact_db) {
-		console.log('🔄 Using D1 database connection');
-		return drizzleD1(platform.env.z_interact_db, { schema });
+		console.log('✅ Using D1 database connection with binding');
+		try {
+			const db = drizzleD1(platform.env.z_interact_db, { schema });
+			console.log('✅ D1 Drizzle instance created successfully');
+			return db;
+		} catch (error) {
+			console.error('❌ Failed to create D1 Drizzle instance:', error);
+			throw error;
+		}
 	}
 	
-	console.log('🔄 Using local database connection');
+	console.log('⚠️  Using local database connection (fallback)');
+	console.log('⚠️  This will likely fail in production environment');
 	// For development/local, use libsql client
 	return createLocalDb();
 }
