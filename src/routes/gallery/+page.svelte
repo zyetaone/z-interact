@@ -288,64 +288,64 @@
 	</div>
 </main>
 
-<!-- Image Modal -->
+<!-- Full Screen Image Modal -->
 {#if modalOpen && selectedImage}
-	<div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onclick={closeImageModal}>
-		<div class="bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl" onclick={(e) => e.stopPropagation()}>
-			<!-- Modal Header -->
-			<div class="flex justify-between items-center p-4 border-b">
-				<div>
-					<h3 class="text-xl font-semibold text-slate-900">{selectedImage.personaTitle}</h3>
-					<p class="text-sm text-slate-600">Generated {new Date(selectedImage.createdAt).toLocaleString()}</p>
-				</div>
-				<button
-					class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
-					onclick={closeImageModal}
-				>
-					✕
-				</button>
+	<div class="fixed inset-0 bg-black z-50 flex flex-col">
+		<!-- Modal Header -->
+		<div class="flex justify-between items-center p-4 bg-white border-b">
+			<div>
+				<h3 class="text-xl font-semibold text-slate-900">{selectedImage.personaTitle}</h3>
+				<p class="text-sm text-slate-600">Generated {new Date(selectedImage.createdAt).toLocaleString()}</p>
 			</div>
+			<button
+				class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+				onclick={closeImageModal}
+			>
+				✕
+			</button>
+		</div>
 
-			<!-- Modal Content -->
-			<div class="p-4">
-				{#if isImageExpired(selectedImage.imageUrl)}
-					<!-- Expired image placeholder -->
-					<div class="flex items-center justify-center bg-slate-200 text-slate-500 rounded-lg" style="height: 60vh;">
-						<div class="text-center">
-							<div class="text-6xl mb-4">⏰</div>
-							<div class="text-xl mb-2">Image expired</div>
-							<div class="text-sm opacity-75">Generated {new Date(selectedImage.createdAt).toLocaleDateString()}</div>
-						</div>
+		<!-- Modal Content - Full Screen -->
+		<div class="flex-1 flex flex-col bg-black">
+			{#if isImageExpired(selectedImage.imageUrl)}
+				<!-- Expired image placeholder -->
+				<div class="flex-1 flex items-center justify-center text-slate-400">
+					<div class="text-center">
+						<div class="text-8xl mb-4">⏰</div>
+						<div class="text-2xl mb-2">Image expired</div>
+						<div class="text-lg opacity-75">Generated {new Date(selectedImage.createdAt).toLocaleDateString()}</div>
 					</div>
-				{:else if selectedImage.error}
-					<!-- Error state -->
-					<div class="flex items-center justify-center bg-red-50 text-red-600 rounded-lg" style="height: 60vh;">
-						<div class="text-center">
-							<div class="text-6xl mb-4">❌</div>
-							<div class="text-xl mb-2">{selectedImage.error}</div>
-						</div>
+				</div>
+			{:else if selectedImage.error}
+				<!-- Error state -->
+				<div class="flex-1 flex items-center justify-center text-red-400">
+					<div class="text-center">
+						<div class="text-8xl mb-4">❌</div>
+						<div class="text-2xl mb-2">{selectedImage.error}</div>
 					</div>
-				{:else}
-					<!-- Normal image -->
-					<div class="flex justify-center">
-						<img
-							src={selectedImage.imageUrl}
-							alt="Workspace for {selectedImage.personaTitle}"
-							class="max-w-full max-h-[60vh] object-contain rounded-lg"
-							onerror={() => handleImageError(selectedImage.id)}
-						/>
-					</div>
-				{/if}
+				</div>
+			{:else}
+				<!-- Normal image - Full screen -->
+				<div class="flex-1 flex items-center justify-center p-4">
+					<img
+						src={selectedImage.imageUrl}
+						alt="Workspace for {selectedImage.personaTitle}"
+						class="max-w-full max-h-full object-contain"
+						onerror={() => handleImageError(selectedImage.id)}
+					/>
+				</div>
+			{/if}
 
-				<!-- Image Details -->
-				<div class="mt-4">
-					<div class="flex items-center justify-between mb-2">
+			<!-- Image Details Footer -->
+			<div class="bg-white p-4 border-t">
+				<div class="max-w-4xl mx-auto">
+					<div class="flex items-center justify-between mb-3">
 						<span class="text-sm font-medium text-slate-700">Provider:</span>
-						<span class="text-sm text-slate-600 bg-slate-100 px-2 py-1 rounded">{selectedImage.provider}</span>
+						<span class="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">{selectedImage.provider}</span>
 					</div>
-					<div class="mb-4">
-						<span class="text-sm font-medium text-slate-700 block mb-1">Prompt:</span>
-						<p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedImage.prompt}</p>
+					<div>
+						<span class="text-sm font-medium text-slate-700 block mb-2">Prompt:</span>
+						<p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg leading-relaxed">{selectedImage.prompt}</p>
 					</div>
 				</div>
 			</div>
