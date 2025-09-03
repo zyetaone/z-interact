@@ -1,0 +1,1 @@
+ALTER TABLE `images` ADD `table_id` text;

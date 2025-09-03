@@ -44,12 +44,12 @@ export const images = sqliteTable('images', {
 	id: text('id').primaryKey(),
 	sessionId: text('session_id').references(() => sessions.id),
 	participantId: text('participant_id').references(() => participants.id),
+	tableId: text('table_id'), // e.g., '1', '2', etc.
 	personaId: text('persona_id').notNull(),
 	personaTitle: text('persona_title').notNull(),
 	imageUrl: text('image_url'), // Keep for backward compatibility, can be null
-	// TODO: Re-enable these columns after proper migration sync
-	// imageData: text('image_data'), // Base64 encoded image data
-	// imageMimeType: text('image_mime_type'), // MIME type (e.g., 'image/png', 'image/jpeg')
+	imageData: text('image_data'), // Base64 encoded image data
+	imageMimeType: text('image_mime_type'), // MIME type (e.g., 'image/png', 'image/jpeg')
 	prompt: text('prompt').notNull(),
 	provider: text('provider', { enum: ['openai', 'stability', 'midjourney', 'placeholder'] }).default('placeholder').notNull(),
 	status: text('status', { enum: ['generating', 'completed', 'failed'] }).default('generating').notNull(),
