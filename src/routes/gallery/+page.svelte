@@ -13,9 +13,7 @@
 	let error = $state(null);
 	let stats = $state({});
 
-	// Modal state
-	let selectedImage = $state(null);
-	let modalOpen = $state(false);
+
 
 	// Initialize reactive state from stores
 	$effect(() => {
@@ -112,15 +110,9 @@
 		return false;
 	}
 
-	// Modal functions
-	function openImageModal(image: any) {
-		selectedImage = image;
-		modalOpen = true;
-	}
-
-	function closeImageModal() {
-		modalOpen = false;
-		selectedImage = null;
+	// Navigate to individual image page
+	function viewImage(image: any) {
+		goto(`/gallery/${image.id}`);
 	}
 </script>
 
@@ -203,7 +195,7 @@
 		{:else if images.length > 0}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				{#each images as image (image.id)}
-					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick={() => openImageModal(image)}>
+					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick={() => viewImage(image)}>
 						<div class="aspect-video bg-slate-100 relative">
 							{#if isImageExpired(image.imageUrl)}
 								<!-- Expired image placeholder -->
@@ -288,53 +280,7 @@
 	</div>
 </main>
 
-<!-- Full Screen Image Modal -->
-{#if modalOpen && selectedImage}
-	<div class="fixed inset-0 bg-black z-50 flex flex-col">
-		<!-- Modal Header -->
-		<div class="flex justify-between items-center p-4 bg-white border-b">
-			<div>
-				<h3 class="text-xl font-semibold text-slate-900">{selectedImage.personaTitle}</h3>
-				<p class="text-sm text-slate-600">Generated {new Date(selectedImage.createdAt).toLocaleString()}</p>
-			</div>
-			<button
-				class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
-				onclick={closeImageModal}
-			>
-				✕
-			</button>
-		</div>
 
-		<!-- Modal Content - Full Screen -->
-		<div class="flex-1 flex flex-col bg-black">
-			{#if isImageExpired(selectedImage.imageUrl)}
-				<!-- Expired image placeholder -->
-				<div class="flex-1 flex items-center justify-center text-slate-400">
-					<div class="text-center">
-						<div class="text-8xl mb-4">⏰</div>
-						<div class="text-2xl mb-2">Image expired</div>
-						<div class="text-lg opacity-75">Generated {new Date(selectedImage.createdAt).toLocaleDateString()}</div>
-					</div>
-				</div>
-			{:else if selectedImage.error}
-				<!-- Error state -->
-				<div class="flex-1 flex items-center justify-center text-red-400">
-					<div class="text-center">
-						<div class="text-8xl mb-4">❌</div>
-						<div class="text-2xl mb-2">{selectedImage.error}</div>
-					</div>
-				</div>
-			{:else}
-				<!-- Normal image - Full screen -->
-				<div class="flex-1 flex items-center justify-center p-4">
-					<img
-						src={selectedImage.imageUrl}
-						alt="Workspace for {selectedImage.personaTitle}"
-						class="max-w-full max-h-full object-contain"
-						onerror={() => handleImageError(selectedImage.id)}
-					/>
-				</div>
-			{/if}
 
 			<!-- Image Details Footer -->
 			<div class="bg-white p-4 border-t">
