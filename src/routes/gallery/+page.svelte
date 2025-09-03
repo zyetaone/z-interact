@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
-	import { sseClient } from '$lib/services/sse-client';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	interface GalleryImage {
 		id: string;
@@ -18,12 +19,37 @@
 		error?: string | null;
 	}
 
-	// Simple reactive state
-	let images = $state<GalleryImage[]>([]);
-	let isLoading = $state(true);
+	// Initialize with server-provided images
+	let images = $state<GalleryImage[]>(data.images.map((img: any) => ({ ...img, error: null })));
+	let isLoading = $state(false); // Data already loaded from server
 	let error = $state<string | null>(null);
-	let sseConnected = $state(false);
-	let lastUpdate = $state(0);
+	let streamingActive = $state(true);
+	let lastUpdate = $state(Date.now());
+
+	// Handle streaming updates from server
+	$effect(() => {
+		if (data.updates) {
+			data.updates.then((newImages: any[]) => {
+				if (newImages.length > 0) {
+					console.log(`📡 Received ${newImages.length} new images via streaming`);
+					
+					// Add new images to the beginning of the array
+					const processedImages = newImages.map(img => ({ ...img, error: null }));
+					images = [...processedImages, ...images];
+					lastUpdate = Date.now();
+					
+					// Show toast notifications for new images
+					processedImages.forEach((img) => {
+						toastStore.success(`New image submitted for ${img.personaTitle}!`);
+					});
+				}
+				streamingActive = false; // Streaming completed
+			}).catch((streamError) => {
+				console.error('Streaming error:', streamError);
+				streamingActive = false;
+			});
+		}
+	});
 	
 	// Computed stats
 	let stats = $derived({
@@ -35,117 +61,19 @@
 		}, {} as Record<string, number>)
 	});
 
-	// Load initial images
-	async function loadImages() {
-		isLoading = true;
-		error = null;
-		
+	// Refresh images manually if needed
+	async function refreshImages() {
 		try {
 			const response = await fetch('/api/images');
-			if (!response.ok) throw new Error('Failed to load images');
-			
-			const data = await response.json();
-			images = data.map((img: any) => ({
-				...img,
-				error: null
-			}));
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load gallery';
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	// Polling fallback for when SSE fails
-	let pollingInterval = $state<number | null>(null);
-	
-	async function startPolling() {
-		if (pollingInterval) return; // Already polling
-		
-		pollingInterval = setInterval(async () => {
-			try {
-				const response = await fetch('/api/images');
-				if (response.ok) {
-					const freshImages = await response.json();
-					// Only update if we have new images
-					if (freshImages.length !== images.length) {
-						const newImages = freshImages.filter((img: any) => 
-							!images.some(existing => existing.id === img.id)
-						);
-						
-						if (newImages.length > 0) {
-							images = freshImages.map((img: any) => ({ ...img, error: null }));
-							lastUpdate = Date.now();
-							newImages.forEach((img: any) => {
-								toastStore.success(`New image submitted for ${img.personaTitle}!`);
-							});
-						}
-					}
-				}
-			} catch (error) {
-				console.error('Polling error:', error);
-			}
-		}, 5000); // Poll every 5 seconds
-	}
-	
-	function stopPolling() {
-		if (pollingInterval) {
-			clearInterval(pollingInterval);
-			pollingInterval = null;
-		}
-	}
-
-	// Initialize on mount
-	onMount(async () => {
-		await loadImages();
-
-		// Try SSE first, fallback to polling on error
-		try {
-			sseClient.connect();
-			
-			// Listen for SSE connection state
-			sseClient.on('connected', () => {
-				sseConnected = true;
-				stopPolling(); // Stop polling if SSE works
-			});
-
-			sseClient.on('image_locked', (event) => {
-				console.log('🆕 New image locked:', event.data);
-				const newImage = {
-					...event.data,
-					error: null
-				};
-				
-				// Add or update image
-				const existingIndex = images.findIndex(img => img.id === newImage.id);
-				if (existingIndex >= 0) {
-					images[existingIndex] = newImage;
-				} else {
-					images = [newImage, ...images];
-				}
-				
+			if (response.ok) {
+				const freshImages = await response.json();
+				images = freshImages.map((img: any) => ({ ...img, error: null }));
 				lastUpdate = Date.now();
-				toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
-			});
-
-			// Start polling as fallback if SSE fails after 10 seconds
-			setTimeout(() => {
-				if (!sseConnected) {
-					console.log('SSE failed, falling back to polling');
-					startPolling();
-				}
-			}, 10000);
-
-		} catch (error) {
-			console.error('SSE initialization failed, using polling:', error);
-			startPolling();
+			}
+		} catch (err) {
+			console.error('Failed to refresh images:', err);
 		}
-
-		return () => {
-			sseClient.disconnect();
-			stopPolling();
-		};
-	});
+	}
 
 	async function clearAllImages() {
 		if (confirm('Are you sure you want to clear all locked images? This cannot be undone.')) {
@@ -218,22 +146,17 @@
 			<p class="text-slate-600 text-lg">
 				Real-time showcase of AI-generated workspace designs
 			</p>
-			<!-- Connection Status -->
+			<!-- Streaming Status -->
 			<div class="mt-3 flex justify-center">
-				{#if sseConnected}
+				{#if streamingActive}
 					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
 						<span class="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
-						Live Updates
-					</span>
-				{:else if pollingInterval}
-					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-						<span class="w-2 h-2 bg-blue-400 rounded-full mr-1.5"></span>
-						Polling Mode
+						Streaming Updates
 					</span>
 				{:else}
-					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-						<span class="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
-						Connecting...
+					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+						<span class="w-2 h-2 bg-blue-400 rounded-full mr-1.5"></span>
+						Stream Complete
 					</span>
 				{/if}
 			</div>

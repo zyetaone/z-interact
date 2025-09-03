@@ -3,7 +3,6 @@ import { getDb } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import type { NewImage } from '$lib/server/db/schema';
-import { sseManager } from '$lib/server/sse-manager';
 
 export async function GET({ platform }) {
 	try {
@@ -44,19 +43,7 @@ export async function POST({ request, platform }) {
 
 		const [insertedImage] = await database.insert(images).values(newImage).returning();
 
-		// Broadcast the new image to all connected clients
-		sseManager.broadcastMessage('image_locked', {
-			id: insertedImage.id,
-			personaId: insertedImage.personaId,
-			personaTitle: insertedImage.personaTitle,
-			imageUrl: insertedImage.imageUrl,
-			imageData: insertedImage.imageData,
-			imageMimeType: insertedImage.imageMimeType,
-			prompt: insertedImage.prompt,
-			provider: insertedImage.provider,
-			createdAt: insertedImage.createdAt
-		});
-
+		console.log(`✅ Image saved to database: ${insertedImage.id}`);
 		return json({ success: true, image: insertedImage });
 
 	} catch (error) {
