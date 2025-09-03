@@ -4,11 +4,26 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui';
 
+	// Define image type
+	interface ImageData {
+		id: string;
+		personaId: string;
+		personaTitle: string;
+		imageUrl: string;
+		imageData?: string;
+		imageMimeType?: string;
+		prompt: string;
+		provider: string;
+		status: string;
+		createdAt: string;
+		updatedAt: string;
+		error?: string;
+	}
 
 	let imageId = $derived($page.params.imageId);
-	let image = $state(null);
+	let image = $state<ImageData | null>(null);
 	let isLoading = $state(true);
-	let error = $state(null);
+	let error = $state<string | null>(null);
 
 	// Fetch image data
 	async function fetchImage() {

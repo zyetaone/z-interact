@@ -83,7 +83,7 @@ export function setGalleryContext() {
 
 // Context consumer function
 export function getGalleryContext(): GalleryContext {
-	const context = getContext(GALLERY_CONTEXT_KEY);
+	const context = getContext(GALLERY_CONTEXT_KEY) as GalleryContext;
 	if (!context) {
 		throw new Error('Gallery context not found. Make sure to call setGalleryContext() in a parent component.');
 	}

@@ -10,10 +10,10 @@
 	const gallery = setGalleryContext();
 
 	// Use reactive state from context
-	let images = $derived(gallery.images);
-	let isLoading = $derived(gallery.isLoading);
-	let error = $derived(gallery.error);
-	let stats = $derived(gallery.stats);
+	let images = $derived(() => gallery.images);
+	let isLoading = $derived(() => gallery.isLoading);
+	let error = $derived(() => gallery.error);
+	let stats = $derived(() => gallery.stats);
 
 	// Initialize gallery on mount
 	onMount(async () => {

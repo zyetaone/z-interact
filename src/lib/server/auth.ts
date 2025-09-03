@@ -70,7 +70,7 @@ export async function validateSessionToken(token: string) {
 				email: users.email,
 				role: users.role
 			},
-			session: sessions
+			session: authSessions
 		})
 		.from(authSessions)
 		.innerJoin(users, eq(authSessions.userId, users.id))
@@ -102,7 +102,7 @@ export async function validateSessionToken(token: string) {
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;
 
 export async function invalidateSession(sessionId: string) {
-	await db.delete(sessions).where(eq(sessions.id, sessionId));
+	await db.delete(authSessions).where(eq(authSessions.id, sessionId));
 }
 
 export function setSessionTokenCookie(event: RequestEvent, token: string, expiresAt: Date) {
