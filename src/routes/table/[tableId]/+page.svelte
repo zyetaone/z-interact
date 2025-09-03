@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui';
 	import { config } from '$lib/config';
 
-	export let data: { table: Table; persona: Persona };
+	let { data }: { data: { table: Table; persona: Persona } } = $props();
 
 	const { table, persona } = data;
 
