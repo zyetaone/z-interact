@@ -39,7 +39,9 @@ export const images = sqliteTable('images', {
 	participantId: text('participant_id').references(() => participants.id),
 	personaId: text('persona_id').notNull(),
 	personaTitle: text('persona_title').notNull(),
-	imageUrl: text('image_url').notNull(),
+	imageUrl: text('image_url'), // Keep for backward compatibility, can be null
+	imageData: text('image_data'), // Base64 encoded image data
+	imageMimeType: text('image_mime_type'), // MIME type (e.g., 'image/png', 'image/jpeg')
 	prompt: text('prompt').notNull(),
 	provider: text('provider', { enum: ['openai', 'stability', 'midjourney', 'placeholder'] }).default('placeholder').notNull(),
 	status: text('status', { enum: ['generating', 'completed', 'failed'] }).default('generating').notNull(),

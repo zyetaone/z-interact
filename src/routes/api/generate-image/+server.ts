@@ -24,10 +24,17 @@ export async function POST({ request }) {
 
 		// Download and store the image locally for permanent access
 		let localImageUrl: string;
+		let imageData: string | undefined;
+		let imageMimeType: string | undefined;
+
 		try {
 			const filename = `${personaId}-${Date.now()}.jpg`;
-			localImageUrl = await imageStorage.downloadAndStoreImage(result.imageUrl, filename);
+			const storageResult = await imageStorage.downloadAndStoreImage(result.imageUrl, filename);
+			localImageUrl = storageResult.url;
+			imageData = storageResult.data;
+			imageMimeType = storageResult.mimeType;
 			console.log(`💾 Image stored locally: ${localImageUrl}`);
+			console.log(`📊 Base64 data stored (${imageData.length} chars)`);
 		} catch (storageError) {
 			console.error('❌ Failed to store image locally:', storageError);
 			// Fall back to original URL if local storage fails
@@ -38,6 +45,8 @@ export async function POST({ request }) {
 			success: true,
 			imageUrl: localImageUrl,
 			originalUrl: result.imageUrl,
+			imageData,
+			imageMimeType,
 			provider: result.provider,
 			prompt: result.prompt,
 			metadata: result.metadata

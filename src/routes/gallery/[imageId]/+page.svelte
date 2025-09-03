@@ -32,10 +32,26 @@
 		}
 	}
 
+	// Get the best available image URL (stored > original)
+	function getImageUrl(image: any): string {
+		// If we have stored image data, use our API endpoint
+		if (image.imageData && image.imageMimeType) {
+			return `/api/images/${image.id}`;
+		}
+
+		// Fall back to stored URL if available
+		if (image.imageUrl && !isImageExpired(image.imageUrl)) {
+			return image.imageUrl;
+		}
+
+		// Last resort: use our API endpoint even if no data (will redirect)
+		return `/api/images/${image.id}`;
+	}
+
 	// Check if image URL is expired (for OpenAI URLs)
 	function isImageExpired(imageUrl: string): boolean {
-		if (!imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
-			return false; // Not an OpenAI URL
+		if (!imageUrl || !imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
+			return false; // Not an OpenAI URL or no URL
 		}
 
 		try {
@@ -120,16 +136,7 @@
 
 			<!-- Image Content - TRUE Full Viewport Width -->
 			<div class="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
-				{#if isImageExpired(image.imageUrl)}
-					<!-- Expired image placeholder -->
-					<div class="w-full flex items-center justify-center bg-slate-200 text-slate-500" style="height: 80vh;">
-						<div class="text-center">
-							<div class="text-9xl mb-6">⏰</div>
-							<div class="text-3xl mb-3">Image expired</div>
-							<div class="text-xl opacity-75">Generated {new Date(image.createdAt).toLocaleDateString()}</div>
-						</div>
-					</div>
-				{:else if image.error}
+				{#if image.error}
 					<!-- Error state -->
 					<div class="w-full flex items-center justify-center bg-red-50 text-red-600" style="height: 80vh;">
 						<div class="text-center">
@@ -140,7 +147,7 @@
 				{:else}
 					<!-- Normal image - TRUE Full Viewport Width -->
 					<img
-						src={image.imageUrl}
+						src={getImageUrl(image)}
 						alt="Workspace for {image.personaTitle}"
 						class="w-full h-auto max-h-[90vh] object-contain"
 						onerror={handleImageError}

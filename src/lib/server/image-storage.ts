@@ -14,7 +14,11 @@ export class ImageStorage {
 		}
 	}
 
-	async downloadAndStoreImage(imageUrl: string, filename?: string): Promise<string> {
+	async downloadAndStoreImage(imageUrl: string, filename?: string): Promise<{
+		url: string;
+		data: string;
+		mimeType: string;
+	}> {
 		try {
 			console.log('⬇️ Downloading image from:', imageUrl.substring(0, 50) + '...');
 
@@ -35,11 +39,21 @@ export class ImageStorage {
 			const finalFilename = filename || `${randomUUID()}.${extension}`;
 			const filePath = path.join(this.storageDir, finalFilename);
 
+			// Save to file system
 			await fs.writeFile(filePath, Buffer.from(imageBuffer));
-			console.log('✅ Image saved to:', filePath);
 
-			// Return the public URL
-			return `/images/${finalFilename}`;
+			// Convert to base64 for database storage
+			const base64Data = Buffer.from(imageBuffer).toString('base64');
+
+			console.log('✅ Image saved to:', filePath);
+			console.log('📊 Base64 data length:', base64Data.length);
+
+			// Return both URL and base64 data
+			return {
+				url: `/images/${finalFilename}`,
+				data: base64Data,
+				mimeType: contentType
+			};
 
 		} catch (error) {
 			console.error('❌ Failed to download and store image:', error);

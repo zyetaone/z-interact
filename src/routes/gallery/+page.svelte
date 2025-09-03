@@ -26,12 +26,14 @@
 		// Listen for new images
 		sseClient.on('image_locked', (event) => {
 			console.log('🆕 New image locked:', event.data);
-			// Convert to gallery format and add through context
+			// Convert to gallery format and add
 			const newImage = {
 				id: event.data.id,
 				personaId: event.data.personaId,
 				personaTitle: event.data.personaTitle,
 				imageUrl: event.data.imageUrl,
+				imageData: event.data.imageData,
+				imageMimeType: event.data.imageMimeType,
 				prompt: event.data.prompt,
 				provider: event.data.provider,
 				createdAt: event.data.createdAt,
@@ -75,10 +77,26 @@
 		console.log(`❌ Image failed to load: ${imageId}`);
 	}
 
+	// Get the best available image URL (stored > original)
+	function getImageUrl(image: any): string {
+		// If we have stored image data, use our API endpoint
+		if (image.imageData && image.imageMimeType) {
+			return `/api/images/${image.id}`;
+		}
+
+		// Fall back to stored URL if available
+		if (image.imageUrl && !isImageExpired(image.imageUrl)) {
+			return image.imageUrl;
+		}
+
+		// Last resort: use our API endpoint even if no data (will redirect)
+		return `/api/images/${image.id}`;
+	}
+
 	// Check if image URL is expired (for OpenAI URLs)
 	function isImageExpired(imageUrl: string): boolean {
-		if (!imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
-			return false; // Not an OpenAI URL
+		if (!imageUrl || !imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
+			return false; // Not an OpenAI URL or no URL
 		}
 
 		try {
@@ -183,16 +201,7 @@
 				{#each images as image (image.id)}
 					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick={() => viewImage(image)}>
 						<div class="aspect-video bg-slate-100 relative">
-							{#if isImageExpired(image.imageUrl)}
-								<!-- Expired image placeholder -->
-								<div class="absolute inset-0 flex items-center justify-center bg-slate-200 text-slate-500">
-									<div class="text-center">
-										<div class="text-4xl mb-2">⏰</div>
-										<div class="text-sm">Image expired</div>
-										<div class="text-xs mt-1 opacity-75">Generated {new Date(image.createdAt).toLocaleDateString()}</div>
-									</div>
-								</div>
-							{:else if image.error}
+							{#if image.error}
 								<!-- Error state -->
 								<div class="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600">
 									<div class="text-center">
@@ -203,7 +212,7 @@
 							{:else}
 								<!-- Normal image -->
 								<img
-									src={image.imageUrl}
+									src={getImageUrl(image)}
 									alt="Workspace for {image.personaTitle}"
 									class="w-full h-full object-cover"
 									onerror={() => handleImageError(image.id)}

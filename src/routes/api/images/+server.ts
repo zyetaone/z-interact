@@ -19,7 +19,7 @@ export async function POST({ request }) {
 	try {
 		const body = await request.json();
 
-		if (!body.personaId || !body.imageUrl || !body.personaTitle || !body.prompt) {
+		if (!body.personaId || !body.personaTitle || !body.prompt) {
 			return json({ error: 'Missing required fields' }, { status: 400 });
 		}
 
@@ -27,7 +27,9 @@ export async function POST({ request }) {
 			id: crypto.randomUUID(),
 			personaId: body.personaId,
 			personaTitle: body.personaTitle,
-			imageUrl: body.imageUrl,
+			imageUrl: body.imageUrl || null,
+			imageData: body.imageData || null,
+			imageMimeType: body.imageMimeType || null,
 			prompt: body.prompt,
 			provider: body.provider || 'placeholder',
 			status: body.status || 'completed',
@@ -45,6 +47,8 @@ export async function POST({ request }) {
 			personaId: insertedImage.personaId,
 			personaTitle: insertedImage.personaTitle,
 			imageUrl: insertedImage.imageUrl,
+			imageData: insertedImage.imageData,
+			imageMimeType: insertedImage.imageMimeType,
 			prompt: insertedImage.prompt,
 			provider: insertedImage.provider,
 			createdAt: insertedImage.createdAt
