@@ -39,14 +39,7 @@
 			👥 Participant
 		</Button>
 
-		<!-- Demo Routes -->
-		<Button
-			variant={isActivePrefix('/demo') ? 'default' : 'ghost'}
-			class="rounded-md ml-1"
-			onclick={() => goto('/demo')}
-		>
-			🎮 Demo
-		</Button>
+
 
 		<!-- Game Routes -->
 		<Button
