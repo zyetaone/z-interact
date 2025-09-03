@@ -6,7 +6,7 @@
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button, QRCodeGenerator, QRModal } from '$lib/components/ui';
 	import { copyToClipboard } from '$lib/utils';
-	import Navigation from '$lib/components/Navigation.svelte';
+
 
 	let baseUrl = $state('');
 	let qrCodes = $state<Record<string, string>>({});
@@ -128,8 +128,7 @@
 			</p>
 		</header>
 
-		<!-- Navigation -->
-		<Navigation />
+
 
 		<!-- QR Code Section -->
 		<section class="mb-8">
