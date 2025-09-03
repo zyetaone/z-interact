@@ -49,27 +49,26 @@
 		isLoading = false;
 	}
 
-	// Auto-refresh every 3 seconds
-	let refreshInterval: NodeJS.Timeout;
-
 	$effect(() => {
 		if (typeof window !== 'undefined') {
 			baseUrl = window.location.origin;
 			generateAllQRCodes();
 
-			// Initialize store
+			// Initialize store (loads images once)
 			workspaceStore.initialize();
-
-			// Set up auto-refresh for presenter view
-			refreshInterval = setInterval(() => {
-				workspaceStore.refreshImages();
-			}, 3000);
-
-			return () => {
-				if (refreshInterval) clearInterval(refreshInterval);
-			};
 		}
 	});
+
+	// Manual refresh function for cost efficiency
+	async function refreshImages() {
+		try {
+			await workspaceStore.refreshImages();
+			toastStore.success('Images refreshed');
+		} catch (error) {
+			console.error('Failed to refresh images:', error);
+			toastStore.error('Failed to refresh images');
+		}
+	}
 
 	onMount(() => {
 		isLoading = false;
@@ -80,7 +79,7 @@
 			try {
 				const response = await fetch('/api/images', { method: 'DELETE' });
 				if (response.ok) {
-					await workspaceStore.refreshImages();
+					await workspaceStore.refreshImages(); // Refresh after clearing
 					toastStore.success('All images cleared successfully');
 				} else {
 					toastStore.error('Failed to clear images');
@@ -126,6 +125,18 @@
 				AI-Powered Workspace Design Collaboration
 			</p>
 		</header>
+
+		<!-- Controls -->
+		<div class="flex justify-center gap-4 mb-8">
+			<Button onclick={refreshImages} variant="outline">
+				🔄 Refresh Images
+			</Button>
+			<a href="/gallery">
+				<Button variant="outline">
+					🖼️ View Gallery
+				</Button>
+			</a>
+		</div>
 
 
 
