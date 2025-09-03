@@ -1,9 +1,9 @@
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { getDb } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET({ params }) {
+export async function GET({ params, platform }) {
 	try {
 		const { imageId } = params;
 
@@ -11,8 +11,10 @@ export async function GET({ params }) {
 			throw error(400, 'Image ID is required');
 		}
 
+		const database = getDb(platform);
+
 		// Fetch image from database
-		const [imageRecord] = await db
+		const [imageRecord] = await database
 			.select()
 			.from(images)
 			.where(eq(images.id, imageId))

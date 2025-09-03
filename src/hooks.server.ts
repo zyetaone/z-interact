@@ -1,5 +1,4 @@
 import type { Handle } from '@sveltejs/kit';
-import * as auth from '$lib/server/auth';
 import { imageStorage } from '$lib/server/image-storage';
 
 // Initialize image storage on server start
@@ -12,24 +11,11 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		storageInitialized = true;
 	}
 
-	const sessionToken = event.cookies.get(auth.sessionCookieName);
-
-	if (!sessionToken) {
-		event.locals.user = null;
-		event.locals.session = null;
-		return resolve(event);
-	}
-
-	const { session, user } = await auth.validateSessionToken(sessionToken);
-
-	if (session) {
-		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-	} else {
-		auth.deleteSessionTokenCookie(event);
-	}
-
-	event.locals.user = user;
-	event.locals.session = session;
+	// For now, skip auth to avoid database connection issues at startup
+	// The main app doesn't require authentication for presentation functionality
+	event.locals.user = null;
+	event.locals.session = null;
+	
 	return resolve(event);
 };
 

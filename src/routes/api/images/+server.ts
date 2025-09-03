@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { db, createDrizzle } from '$lib/server/db';
+import { getDb } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { NewImage } from '$lib/server/db/schema';
@@ -7,7 +7,7 @@ import { sseManager } from '$lib/server/sse-manager';
 
 export async function GET({ platform }) {
 	try {
-		const database = createDrizzle(platform) || db;
+		const database = getDb(platform);
 		const allImages = await database.select().from(images).orderBy(images.createdAt);
 		return json(allImages);
 	} catch (error) {
@@ -24,7 +24,7 @@ export async function POST({ request, platform }) {
 			return json({ error: 'Missing required fields' }, { status: 400 });
 		}
 
-		const database = createDrizzle(platform) || db;
+		const database = getDb(platform);
 
 		const newImage: NewImage = {
 			id: crypto.randomUUID(),
@@ -68,7 +68,7 @@ export async function POST({ request, platform }) {
 // DELETE endpoint to clear all images (for testing/demo purposes)
 export async function DELETE({ platform }) {
 	try {
-		const database = createDrizzle(platform) || db;
+		const database = getDb(platform);
 		await database.delete(images);
 		return json({ success: true, message: 'All images cleared' });
 	} catch (error) {

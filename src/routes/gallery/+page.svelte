@@ -22,6 +22,8 @@
 	let images = $state<GalleryImage[]>([]);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
+	let sseConnected = $state(false);
+	let lastUpdate = $state(0);
 	
 	// Computed stats
 	let stats = $derived({
@@ -54,33 +56,94 @@
 		}
 	}
 
+	// Polling fallback for when SSE fails
+	let pollingInterval = $state<number | null>(null);
+	
+	async function startPolling() {
+		if (pollingInterval) return; // Already polling
+		
+		pollingInterval = setInterval(async () => {
+			try {
+				const response = await fetch('/api/images');
+				if (response.ok) {
+					const freshImages = await response.json();
+					// Only update if we have new images
+					if (freshImages.length !== images.length) {
+						const newImages = freshImages.filter((img: any) => 
+							!images.some(existing => existing.id === img.id)
+						);
+						
+						if (newImages.length > 0) {
+							images = freshImages.map((img: any) => ({ ...img, error: null }));
+							lastUpdate = Date.now();
+							newImages.forEach((img: any) => {
+								toastStore.success(`New image submitted for ${img.personaTitle}!`);
+							});
+						}
+					}
+				}
+			} catch (error) {
+				console.error('Polling error:', error);
+			}
+		}, 5000); // Poll every 5 seconds
+	}
+	
+	function stopPolling() {
+		if (pollingInterval) {
+			clearInterval(pollingInterval);
+			pollingInterval = null;
+		}
+	}
+
 	// Initialize on mount
 	onMount(async () => {
 		await loadImages();
 
-		// Set up SSE for real-time updates
-		sseClient.connect();
+		// Try SSE first, fallback to polling on error
+		try {
+			sseClient.connect();
+			
+			// Listen for SSE connection state
+			sseClient.on('connected', () => {
+				sseConnected = true;
+				stopPolling(); // Stop polling if SSE works
+			});
 
-		sseClient.on('image_locked', (event) => {
-			console.log('🆕 New image locked:', event.data);
-			const newImage = {
-				...event.data,
-				error: null
-			};
-			
-			// Add or update image
-			const existingIndex = images.findIndex(img => img.id === newImage.id);
-			if (existingIndex >= 0) {
-				images[existingIndex] = newImage;
-			} else {
-				images = [newImage, ...images];
-			}
-			
-			toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
-		});
+			sseClient.on('image_locked', (event) => {
+				console.log('🆕 New image locked:', event.data);
+				const newImage = {
+					...event.data,
+					error: null
+				};
+				
+				// Add or update image
+				const existingIndex = images.findIndex(img => img.id === newImage.id);
+				if (existingIndex >= 0) {
+					images[existingIndex] = newImage;
+				} else {
+					images = [newImage, ...images];
+				}
+				
+				lastUpdate = Date.now();
+				toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
+			});
+
+			// Start polling as fallback if SSE fails after 10 seconds
+			setTimeout(() => {
+				if (!sseConnected) {
+					console.log('SSE failed, falling back to polling');
+					startPolling();
+				}
+			}, 10000);
+
+		} catch (error) {
+			console.error('SSE initialization failed, using polling:', error);
+			startPolling();
+		}
 
 		return () => {
 			sseClient.disconnect();
+			stopPolling();
 		};
 	});
 
@@ -155,6 +218,25 @@
 			<p class="text-slate-600 text-lg">
 				Real-time showcase of AI-generated workspace designs
 			</p>
+			<!-- Connection Status -->
+			<div class="mt-3 flex justify-center">
+				{#if sseConnected}
+					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+						<span class="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
+						Live Updates
+					</span>
+				{:else if pollingInterval}
+					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+						<span class="w-2 h-2 bg-blue-400 rounded-full mr-1.5"></span>
+						Polling Mode
+					</span>
+				{:else}
+					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+						<span class="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
+						Connecting...
+					</span>
+				{/if}
+			</div>
 		</header>
 
 		<!-- Stats Section -->

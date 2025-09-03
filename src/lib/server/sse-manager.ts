@@ -1,4 +1,4 @@
-// SSE Manager for real-time updates
+// SSE Manager for real-time updates (Cloudflare Workers compatible)
 export interface SSEClient {
 	controller: ReadableStreamDefaultController;
 	lastActivity: number;
@@ -7,22 +7,8 @@ export interface SSEClient {
 export class SSEManager {
 	private clients = new Map<string, SSEClient>();
 
-	// Clean up inactive connections every 30 seconds
-	private cleanupInterval = setInterval(() => {
-		const now = Date.now();
-		const timeout = 5 * 60 * 1000; // 5 minutes
-
-		for (const [clientId, client] of this.clients.entries()) {
-			if (now - client.lastActivity > timeout) {
-				try {
-					client.controller.close();
-				} catch (error) {
-					console.log(`Closed inactive SSE connection: ${clientId}`);
-				}
-				this.clients.delete(clientId);
-			}
-		}
-	}, 30000);
+	// Note: No setInterval cleanup for Cloudflare Workers compatibility
+	// Workers are stateless and don't support long-running timers
 
 	addClient(clientId: string, client: SSEClient) {
 		this.clients.set(clientId, client);
@@ -53,7 +39,7 @@ export class SSEManager {
 	}
 
 	destroy() {
-		clearInterval(this.cleanupInterval);
+		// Clean up all active connections
 		for (const [clientId, client] of this.clients.entries()) {
 			try {
 				client.controller.close();
@@ -62,6 +48,23 @@ export class SSEManager {
 			}
 		}
 		this.clients.clear();
+	}
+
+	// Manual cleanup method for inactive clients (called when needed)
+	cleanupInactiveClients() {
+		const now = Date.now();
+		const timeout = 5 * 60 * 1000; // 5 minutes
+
+		for (const [clientId, client] of this.clients.entries()) {
+			if (now - client.lastActivity > timeout) {
+				try {
+					client.controller.close();
+				} catch (error) {
+					console.log(`Closed inactive SSE connection: ${clientId}`);
+				}
+				this.clients.delete(clientId);
+			}
+		}
 	}
 }
 

@@ -3,21 +3,35 @@ import { createClient } from '@libsql/client';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
 
-// Use environment variable or fallback to local file
-const databaseUrl = env.DATABASE_URL || 'file:./local.db';
+// Create database connection - only for development/local
+let localDb: any = null;
 
-const client = createClient({ url: databaseUrl });
+function createLocalDb() {
+	if (!localDb) {
+		const databaseUrl = env.DATABASE_URL || 'file:./local.db';
+		const client = createClient({ url: databaseUrl });
+		localDb = drizzle(client, { schema });
+	}
+	return localDb;
+}
 
-export const db = drizzle(client, { schema });
-
-// Cloudflare D1 Database support
-export function createDrizzle(platform: any) {
+// Main database function - always use this
+export function getDb(platform?: any) {
+	// In Cloudflare Workers, use D1 binding
 	if (platform?.env?.z_interact_db) {
-		// Use Cloudflare D1 database
 		return drizzle(platform.env.z_interact_db, { schema });
 	}
-	// Fallback to default connection
-	return db;
+	
+	// For development/local, use libsql client
+	return createLocalDb();
+}
+
+// Legacy export for backwards compatibility (development only)
+export const db = createLocalDb();
+
+// Cloudflare D1 Database support (legacy function name)
+export function createDrizzle(platform: any) {
+	return getDb(platform);
 }
 
 // Helper function to initialize database
