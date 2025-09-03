@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import Header from './Header.svelte';
+	import Navigation from '$lib/components/Navigation.svelte';
 	import Toast from '$lib/components/ui/toast.svelte';
 	import { page } from '$app/stores';
 	import { type Snippet } from 'svelte';
@@ -14,7 +14,7 @@
 
 <div class="app">
 	{#if !isPresentation()}
-		<Header />
+		<Navigation />
 	{/if}
 
 	<main class={isPresentation() ? 'presentation-main' : 'main-content'}>
