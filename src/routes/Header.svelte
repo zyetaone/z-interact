@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import logo from '$lib/images/svelte-logo.svg';
-	import github from '$lib/images/github.svg';
 </script>
 
 <header>
 	<div class="corner">
-		<a href="https://svelte.dev/docs/kit">
-			<img src={logo} alt="SvelteKit" />
+		<a href="/" class="logo-link">
+			<span class="logo-text">🎨 Z-Interact</span>
 		</a>
 	</div>
 
@@ -17,13 +15,22 @@
 		</svg>
 		<ul>
 			<li aria-current={page.url.pathname === '/' ? 'page' : undefined}>
-				<a href="/">Home</a>
+				<a href="/">📱 QR Codes</a>
 			</li>
-			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
-				<a href="/about">About</a>
+			<li aria-current={page.url.pathname === '/gallery' ? 'page' : undefined}>
+				<a href="/gallery">🖼️ Gallery</a>
+			</li>
+			<li aria-current={page.url.pathname === '/participant' ? 'page' : undefined}>
+				<a href="/participant">👥 Participant</a>
+			</li>
+			<li aria-current={page.url.pathname.startsWith('/demo') ? 'page' : undefined}>
+				<a href="/demo">🎮 Demo</a>
 			</li>
 			<li aria-current={page.url.pathname.startsWith('/sverdle') ? 'page' : undefined}>
-				<a href="/sverdle">Sverdle</a>
+				<a href="/sverdle">🎯 Sverdle</a>
+			</li>
+			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
+				<a href="/about">ℹ️ About</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
@@ -32,8 +39,8 @@
 	</nav>
 
 	<div class="corner">
-		<a href="https://github.com/sveltejs/kit">
-			<img src={github} alt="GitHub" />
+		<a href="https://github.com" class="github-link">
+			<span class="github-text">🔗 GitHub</span>
 		</a>
 	</div>
 </header>
@@ -55,12 +62,25 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
+		text-decoration: none;
+		font-size: 0.8rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--color-text);
+		transition: color 0.2s linear;
 	}
 
-	.corner img {
-		width: 2em;
-		height: 2em;
-		object-fit: contain;
+	.logo-text {
+		font-size: 0.9rem;
+	}
+
+	.github-text {
+		font-size: 0.7rem;
+	}
+
+	.corner a:hover {
+		color: var(--color-theme-1);
 	}
 
 	nav {
