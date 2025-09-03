@@ -71,10 +71,10 @@
 		try {
 			const imageUrl = await workspaceStore.generateImage(persona.id, finalPrompt);
 			generatedImage = imageUrl;
-			ttoastStore.success('Image generated successfully!');
+			toastStore.success('Image generated successfully!');
 		} catch (error) {
 			console.error('Image generation failed:', error);
-			ttoastStore.error('Failed to generate image. Please try again.');
+			toastStore.error('Failed to generate image. Please try again.');
 		}
 	}
 
@@ -103,10 +103,10 @@
 			});
 
 			isLocked = true;
-			ttoastStore.success('Image locked in successfully! View it on the presenter dashboard.');
+			toastStore.success('Image locked in successfully! View it on the presenter dashboard.');
 		} catch (error) {
 			console.error('Failed to lock image:', error);
-			ttoastStore.error('Failed to lock image. Please try again.');
+			toastStore.error('Failed to lock image. Please try again.');
 		}
 	}
 
