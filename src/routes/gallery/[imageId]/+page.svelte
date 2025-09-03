@@ -79,10 +79,10 @@
 <main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
 
-	<div class="w-full p-4 md:p-8">
-		<!-- Back Button -->
-		<div class="mb-6">
-			<Button variant="outline" onclick={goBack} class="flex items-center gap-2">
+	<div class="w-full p-4 md:p-8 relative">
+		<!-- Back Button - Absolute positioned in top-left -->
+		<div class="absolute top-4 left-4 z-10">
+			<Button variant="outline" onclick={goBack} class="flex items-center gap-2 bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white">
 				← Back to Gallery
 			</Button>
 		</div>
@@ -108,7 +108,7 @@
 		{:else if image}
 			<!-- Image Header -->
 			<div class="w-full bg-white border-b">
-				<div class="max-w-6xl mx-auto px-6 py-4">
+				<div class="max-w-6xl mx-auto px-6 py-4 pl-24">
 					<h1 class="text-3xl font-bold text-slate-900 mb-2">{image.personaTitle}</h1>
 					<div class="flex items-center gap-4 text-sm text-slate-600">
 						<span>Generated {new Date(image.createdAt).toLocaleString()}</span>
