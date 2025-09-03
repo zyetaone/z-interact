@@ -28,6 +28,8 @@ export async function GET({ platform }) {
 }
 
 export async function POST({ request, platform }) {
+	let newImage: NewImage | undefined;
+	
 	try {
 		// Debug logging for production issues
 		console.log('🔍 POST /api/images - Platform object:', platform ? 'exists' : 'missing');
@@ -63,7 +65,7 @@ export async function POST({ request, platform }) {
 
 		const database = getDb(platform);
 
-		const newImage: NewImage = {
+		newImage = {
 			id: crypto.randomUUID(),
 			tableId: body.tableId,
 			personaId: body.personaId,
