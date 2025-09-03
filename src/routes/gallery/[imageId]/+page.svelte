@@ -117,8 +117,8 @@
 				</div>
 			</div>
 
-			<!-- Image Content - TRUE Full Width -->
-			<div class="w-full">
+			<!-- Image Content - TRUE Full Viewport Width -->
+			<div class="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
 				{#if isImageExpired(image.imageUrl)}
 					<!-- Expired image placeholder -->
 					<div class="w-full flex items-center justify-center bg-slate-200 text-slate-500" style="height: 80vh;">
@@ -138,48 +138,14 @@
 					</div>
 				{:else}
 					<!-- Normal image - TRUE Full Viewport Width -->
-					<div class="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
-						<img
-							src={image.imageUrl}
-							alt="Workspace for {image.personaTitle}"
-							class="w-full h-auto max-h-[90vh] object-contain"
-							onerror={handleImageError}
-						/>
-					</div>
+					<img
+						src={image.imageUrl}
+						alt="Workspace for {image.personaTitle}"
+						class="w-full h-auto max-h-[90vh] object-contain"
+						onerror={handleImageError}
+					/>
 				{/if}
 			</div>
-
-			<!-- Image Content - TRUE Full Width -->
-				<div class="p-0">
-					{#if isImageExpired(image.imageUrl)}
-						<!-- Expired image placeholder -->
-						<div class="flex items-center justify-center bg-slate-200 text-slate-500 rounded-none" style="height: 80vh;">
-							<div class="text-center">
-								<div class="text-9xl mb-6">⏰</div>
-								<div class="text-3xl mb-3">Image expired</div>
-								<div class="text-xl opacity-75">Generated {new Date(image.createdAt).toLocaleDateString()}</div>
-							</div>
-						</div>
-					{:else if image.error}
-						<!-- Error state -->
-						<div class="flex items-center justify-center bg-red-50 text-red-600 rounded-none" style="height: 80vh;">
-							<div class="text-center">
-								<div class="text-9xl mb-6">❌</div>
-								<div class="text-3xl mb-3">{image.error}</div>
-							</div>
-						</div>
-					{:else}
-						<!-- Normal image - Full width -->
-						<div class="w-full">
-							<img
-								src={image.imageUrl}
-								alt="Workspace for {image.personaTitle}"
-								class="w-full h-auto max-h-[90vh] object-contain"
-								onerror={handleImageError}
-							/>
-						</div>
-					{/if}
-				</div>
 
 			<!-- Image Details - Full Width -->
 			<div class="w-full bg-slate-50 border-t">
