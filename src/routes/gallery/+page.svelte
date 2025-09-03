@@ -120,12 +120,6 @@
 	function viewImage(image: any) {
 		goto(`/gallery/${image.id}`);
 	}
-
-	// Handle image loading errors
-	function handleImageError(imageId: string) {
-		console.warn(`Failed to load image: ${imageId}`);
-		galleryActions.setImageError(imageId, 'Failed to load image');
-	}
 </script>
 
 <svelte:head>
