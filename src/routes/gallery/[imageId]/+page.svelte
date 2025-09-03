@@ -79,7 +79,7 @@
 <main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
 
-	<div class="container mx-auto max-w-6xl p-4 md:p-8">
+	<div class="container mx-auto max-w-7xl p-4 md:p-8">
 		<!-- Back Button -->
 		<div class="mb-6">
 			<Button variant="outline" onclick={goBack} class="flex items-center gap-2">
@@ -117,66 +117,68 @@
 					</div>
 				</div>
 
-				<!-- Image Content -->
-				<div class="p-6">
+				<!-- Image Content - Full Width -->
+				<div class="p-0">
 					{#if isImageExpired(image.imageUrl)}
 						<!-- Expired image placeholder -->
-						<div class="flex items-center justify-center bg-slate-200 text-slate-500 rounded-lg" style="height: 70vh;">
+						<div class="flex items-center justify-center bg-slate-200 text-slate-500 rounded-none" style="height: 80vh;">
 							<div class="text-center">
-								<div class="text-8xl mb-4">⏰</div>
-								<div class="text-2xl mb-2">Image expired</div>
-								<div class="text-lg opacity-75">Generated {new Date(image.createdAt).toLocaleDateString()}</div>
+								<div class="text-9xl mb-6">⏰</div>
+								<div class="text-3xl mb-3">Image expired</div>
+								<div class="text-xl opacity-75">Generated {new Date(image.createdAt).toLocaleDateString()}</div>
 							</div>
 						</div>
 					{:else if image.error}
 						<!-- Error state -->
-						<div class="flex items-center justify-center bg-red-50 text-red-600 rounded-lg" style="height: 70vh;">
+						<div class="flex items-center justify-center bg-red-50 text-red-600 rounded-none" style="height: 80vh;">
 							<div class="text-center">
-								<div class="text-8xl mb-4">❌</div>
-								<div class="text-2xl mb-2">{image.error}</div>
+								<div class="text-9xl mb-6">❌</div>
+								<div class="text-3xl mb-3">{image.error}</div>
 							</div>
 						</div>
 					{:else}
-						<!-- Normal image -->
-						<div class="flex justify-center">
+						<!-- Normal image - Full width -->
+						<div class="w-full">
 							<img
 								src={image.imageUrl}
 								alt="Workspace for {image.personaTitle}"
-								class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
+								class="w-full h-auto max-h-[90vh] object-contain"
 								onerror={handleImageError}
 							/>
 						</div>
 					{/if}
 				</div>
 
-				<!-- Image Details -->
-				<div class="p-6 bg-slate-50 border-t">
-					<h2 class="text-xl font-semibold text-slate-900 mb-4">Generation Details</h2>
-					<div class="space-y-4">
-						<div>
-							<label class="text-sm font-medium text-slate-700 block mb-2">AI Prompt:</label>
-							<div class="bg-white p-4 rounded-lg border text-slate-600 leading-relaxed">
-								{image.prompt}
-							</div>
-						</div>
-						<div class="grid md:grid-cols-2 gap-4">
+				<!-- Image Details - Full Width -->
+				<div class="p-8 bg-slate-50 border-t">
+					<div class="max-w-6xl mx-auto">
+						<h2 class="text-2xl font-semibold text-slate-900 mb-6">Generation Details</h2>
+						<div class="space-y-6">
 							<div>
-								<label class="text-sm font-medium text-slate-700 block mb-2">Persona:</label>
-								<div class="bg-white p-3 rounded-lg border text-slate-600">
-									{image.personaTitle}
+								<label class="text-base font-medium text-slate-700 block mb-3">AI Prompt:</label>
+								<div class="bg-white p-6 rounded-lg border text-slate-600 leading-relaxed text-lg shadow-sm">
+									{image.prompt}
 								</div>
 							</div>
-							<div>
-								<label class="text-sm font-medium text-slate-700 block mb-2">AI Provider:</label>
-								<div class="bg-white p-3 rounded-lg border text-slate-600">
-									{image.provider}
+							<div class="grid md:grid-cols-3 gap-6">
+								<div>
+									<label class="text-base font-medium text-slate-700 block mb-3">Persona:</label>
+									<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
+										{image.personaTitle}
+									</div>
 								</div>
-							</div>
-						</div>
-						<div>
-							<label class="text-sm font-medium text-slate-700 block mb-2">Generated:</label>
-							<div class="bg-white p-3 rounded-lg border text-slate-600">
-								{new Date(image.createdAt).toLocaleString()}
+								<div>
+									<label class="text-base font-medium text-slate-700 block mb-3">AI Provider:</label>
+									<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
+										{image.provider}
+									</div>
+								</div>
+								<div>
+									<label class="text-base font-medium text-slate-700 block mb-3">Generated:</label>
+									<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
+										{new Date(image.createdAt).toLocaleString()}
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
