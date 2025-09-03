@@ -4,7 +4,6 @@ import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
 import { db } from '$lib/server/db';
 import { users, authSessions } from '$lib/server/db/schema';
-import { hash, verify } from '@node-rs/argon2';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
@@ -16,8 +15,27 @@ export function generateSessionToken() {
 	return token;
 }
 
+// Cloudflare Workers compatible password hashing using Web Crypto API
+async function hashPassword(password: string): Promise<string> {
+	const encoder = new TextEncoder();
+	const data = encoder.encode(password);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+	return encodeHexLowerCase(new Uint8Array(hashBuffer));
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+	const passwordHash = await hashPassword(password);
+	return passwordHash === hash;
+}
+
+// Export for compatibility with demo routes
+export const hash = hashPassword;
+export const verify = async (storedHash: string, password: string) => {
+	return verifyPassword(password, storedHash);
+};
+
 export async function createUser(email: string, password: string, role: 'admin' | 'presenter' | 'participant' = 'participant') {
-	const passwordHash = await hash(password);
+	const passwordHash = await hashPassword(password);
 
 	const [user] = await db.insert(users).values({
 		id: crypto.randomUUID(),
@@ -38,7 +56,7 @@ export async function authenticateUser(email: string, password: string) {
 		return null;
 	}
 
-	const isValidPassword = await verify(user.passwordHash, password);
+	const isValidPassword = await verifyPassword(password, user.passwordHash);
 	if (!isValidPassword) {
 		return null;
 	}

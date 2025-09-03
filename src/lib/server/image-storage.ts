@@ -1,17 +1,8 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { randomUUID } from 'crypto';
-
+// Cloudflare Workers compatible image storage
 export class ImageStorage {
-	private storageDir = path.join(process.cwd(), 'static', 'images');
-
 	async initialize() {
-		try {
-			await fs.mkdir(this.storageDir, { recursive: true });
-			console.log('📁 Image storage directory created:', this.storageDir);
-		} catch (error) {
-			console.error('❌ Failed to create image storage directory:', error);
-		}
+		// No filesystem initialization needed in Cloudflare Workers
+		console.log('📁 Image storage initialized for Cloudflare Workers');
 	}
 
 	async downloadAndStoreImage(imageUrl: string, filename?: string): Promise<{
@@ -36,21 +27,17 @@ export class ImageStorage {
 			const extension = this.getExtensionFromContentType(contentType);
 
 			// Generate unique filename if not provided
-			const finalFilename = filename || `${randomUUID()}.${extension}`;
-			const filePath = path.join(this.storageDir, finalFilename);
+			const finalFilename = filename || `${crypto.randomUUID()}.${extension}`;
 
-			// Save to file system
-			await fs.writeFile(filePath, Buffer.from(imageBuffer));
+			// Convert to base64 for database storage (no filesystem in Cloudflare Workers)
+			const base64Data = this.arrayBufferToBase64(imageBuffer);
 
-			// Convert to base64 for database storage
-			const base64Data = Buffer.from(imageBuffer).toString('base64');
-
-			console.log('✅ Image saved to:', filePath);
+			console.log('✅ Image processed for storage');
 			console.log('📊 Base64 data length:', base64Data.length);
 
-			// Return both URL and base64 data
+			// Return data URL for immediate use and base64 for database storage
 			return {
-				url: `/images/${finalFilename}`,
+				url: `data:${contentType};base64,${base64Data}`,
 				data: base64Data,
 				mimeType: contentType
 			};
@@ -62,28 +49,15 @@ export class ImageStorage {
 	}
 
 	async deleteImage(filename: string): Promise<boolean> {
-		try {
-			const filePath = path.join(this.storageDir, filename);
-			await fs.unlink(filePath);
-			console.log('🗑️ Image deleted:', filename);
-			return true;
-		} catch (error) {
-			console.error('❌ Failed to delete image:', error);
-			return false;
-		}
+		// Images are stored in database, deletion handled by database operations
+		console.log('🗑️ Image deletion handled by database operations');
+		return true;
 	}
 
 	async listImages(): Promise<string[]> {
-		try {
-			const files = await fs.readdir(this.storageDir);
-			return files.filter(file => {
-				const ext = path.extname(file).toLowerCase();
-				return ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
-			});
-		} catch (error) {
-			console.error('❌ Failed to list images:', error);
-			return [];
-		}
+		// Images are stored in database, listing handled by database operations
+		console.log('📋 Image listing handled by database operations');
+		return [];
 	}
 
 	private getExtensionFromContentType(contentType: string): string {
@@ -97,31 +71,20 @@ export class ImageStorage {
 		return typeMap[contentType] || 'jpg';
 	}
 
-	// Clean up expired images (older than specified days)
-	async cleanupExpiredImages(maxAgeDays: number = 30): Promise<number> {
-		try {
-			const files = await fs.readdir(this.storageDir);
-			let deletedCount = 0;
-
-			for (const file of files) {
-				const filePath = path.join(this.storageDir, file);
-				const stats = await fs.stat(filePath);
-
-				const ageInDays = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
-
-				if (ageInDays > maxAgeDays) {
-					await fs.unlink(filePath);
-					deletedCount++;
-					console.log('🗑️ Cleaned up expired image:', file);
-				}
-			}
-
-			console.log(`🧹 Cleaned up ${deletedCount} expired images`);
-			return deletedCount;
-		} catch (error) {
-			console.error('❌ Failed to cleanup expired images:', error);
-			return 0;
+	private arrayBufferToBase64(buffer: ArrayBuffer): string {
+		const bytes = new Uint8Array(buffer);
+		let binary = '';
+		const len = bytes.byteLength;
+		for (let i = 0; i < len; i++) {
+			binary += String.fromCharCode(bytes[i]);
 		}
+		return btoa(binary);
+	}
+
+	// Clean up expired images (handled by database operations in Cloudflare Workers)
+	async cleanupExpiredImages(maxAgeDays: number = 30): Promise<number> {
+		console.log('🧹 Image cleanup handled by database operations');
+		return 0;
 	}
 }
 

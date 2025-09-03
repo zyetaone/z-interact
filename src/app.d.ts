@@ -6,10 +6,21 @@ declare global {
 			user: import('$lib/server/auth').SessionValidationResult['user'];
 			session: import('$lib/server/auth').SessionValidationResult['session'];
 		}
-	} // interface Error {}
-	// interface Locals {}
-} // interface PageData {}
-// interface PageState {}
+		// interface Error {}
+		// interface PageData {}
+		// interface PageState {}
+		interface Platform {
+			env: {
+				z_interact_db: D1Database;
+				OPENAI_API_KEY?: string;
+				SESSION_SECRET?: string;
+			};
+			context: {
+				waitUntil(promise: Promise<any>): void;
+			};
+			caches: CacheStorage & { default: Cache };
+		}
+	}
+}
 
-// interface Platform {}
 export {};
