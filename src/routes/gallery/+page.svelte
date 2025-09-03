@@ -23,33 +23,7 @@
 	let images = $state<GalleryImage[]>(data.images.map((img: any) => ({ ...img, error: null })));
 	let isLoading = $state(false); // Data already loaded from server
 	let error = $state<string | null>(null);
-	let streamingActive = $state(true);
 	let lastUpdate = $state(Date.now());
-
-	// Handle streaming updates from server
-	$effect(() => {
-		if (data.updates) {
-			data.updates.then((newImages: any[]) => {
-				if (newImages.length > 0) {
-					console.log(`📡 Received ${newImages.length} new images via streaming`);
-					
-					// Add new images to the beginning of the array
-					const processedImages = newImages.map(img => ({ ...img, error: null }));
-					images = [...processedImages, ...images];
-					lastUpdate = Date.now();
-					
-					// Show toast notifications for new images
-					processedImages.forEach((img) => {
-						toastStore.success(`New image submitted for ${img.personaTitle}!`);
-					});
-				}
-				streamingActive = false; // Streaming completed
-			}).catch((streamError) => {
-				console.error('Streaming error:', streamError);
-				streamingActive = false;
-			});
-		}
-	});
 	
 	// Computed stats
 	let stats = $derived({
@@ -146,19 +120,12 @@
 			<p class="text-slate-600 text-lg">
 				Real-time showcase of AI-generated workspace designs
 			</p>
-			<!-- Streaming Status -->
+			<!-- Gallery Status -->
 			<div class="mt-3 flex justify-center">
-				{#if streamingActive}
-					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-						<span class="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
-						Streaming Updates
-					</span>
-				{:else}
-					<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-						<span class="w-2 h-2 bg-blue-400 rounded-full mr-1.5"></span>
-						Stream Complete
-					</span>
-				{/if}
+				<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+					<span class="w-2 h-2 bg-blue-400 rounded-full mr-1.5"></span>
+					Live Gallery
+				</span>
 			</div>
 		</header>
 
@@ -212,7 +179,7 @@
 						Error Loading Gallery
 					</h3>
 					<p class="text-slate-500 mb-4">{error}</p>
-					<Button onclick={loadImages} variant="outline">
+					<Button onclick={refreshImages} variant="outline">
 						Try Again
 					</Button>
 				</div>
