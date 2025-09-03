@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, afterUpdate } from 'svelte';
 	import { config } from '$lib/config';
 	import { workspaceStore } from '$lib/stores/workspace.svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
