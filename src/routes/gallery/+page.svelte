@@ -1,40 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { galleryImages, isGalleryLoading, galleryError, galleryActions, galleryStats, hasImages } from '$lib/stores/gallery.svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
 	import { sseClient } from '$lib/services/sse-client';
+	import { setGalleryContext, useGallery } from '$lib/stores/gallery-context.svelte';
 
+	// Set up gallery context for this component tree
+	const gallery = setGalleryContext();
 
-	// Convert stores to reactive state using Svelte 5
-	let images = $state([]);
-	let isLoading = $state(true);
-	let error = $state(null);
-	let stats = $state({});
-
-
-
-	// Initialize reactive state from stores
-	$effect(() => {
-		// Subscribe to store changes
-		const unsubImages = galleryImages.subscribe(current => images = current);
-		const unsubLoading = isGalleryLoading.subscribe(current => isLoading = current);
-		const unsubError = galleryError.subscribe(current => error = current);
-		const unsubStats = galleryStats.subscribe(current => stats = current);
-
-		return () => {
-			unsubImages();
-			unsubLoading();
-			unsubError();
-			unsubStats();
-		};
-	});
+	// Use reactive state from context
+	let images = $derived(gallery.images);
+	let isLoading = $derived(gallery.isLoading);
+	let error = $derived(gallery.error);
+	let stats = $derived(gallery.stats);
 
 	// Initialize gallery on mount
 	onMount(async () => {
-		// Initialize gallery store
-		await galleryActions.initialize();
+		// Initialize gallery through context
+		await gallery.initialize();
 
 		// Set up SSE for real-time updates
 		sseClient.connect();
@@ -42,7 +26,7 @@
 		// Listen for new images
 		sseClient.on('image_locked', (event) => {
 			console.log('🆕 New image locked:', event.data);
-			// Convert to gallery format and add
+			// Convert to gallery format and add through context
 			const newImage = {
 				id: event.data.id,
 				personaId: event.data.personaId,
@@ -54,7 +38,7 @@
 				isLoading: false,
 				error: null
 			};
-			galleryActions.addImage(newImage);
+			gallery.addImage(newImage);
 			toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
 		});
 
@@ -68,16 +52,12 @@
 		};
 	});
 
-	onMount(() => {
-		// Gallery initialization is handled by the store
-	});
-
 	async function clearAllImages() {
 		if (confirm('Are you sure you want to clear all locked images? This cannot be undone.')) {
 			try {
 				const response = await fetch('/api/images', { method: 'DELETE' });
 				if (response.ok) {
-					galleryActions.clearImages();
+					gallery.clearImages();
 					toastStore.success('All images cleared successfully');
 				} else {
 					toastStore.error('Failed to clear images');
@@ -91,7 +71,7 @@
 
 	// Handle image loading errors
 	function handleImageError(imageId: string) {
-		galleryActions.setImageError(imageId, 'Image expired or unavailable');
+		gallery.setImageError(imageId, 'Image expired or unavailable');
 		console.log(`❌ Image failed to load: ${imageId}`);
 	}
 
@@ -193,7 +173,7 @@
 						Error Loading Gallery
 					</h3>
 					<p class="text-slate-500 mb-4">{error}</p>
-					<Button onclick={() => galleryActions.initialize()} variant="outline">
+					<Button onclick={() => gallery.initialize()} variant="outline">
 						Try Again
 					</Button>
 				</div>

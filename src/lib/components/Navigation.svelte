@@ -2,8 +2,13 @@
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { getContext } from 'svelte';
 
-	let currentPath = $derived($page.url.pathname);
+	// Get app context for shared state
+	const appContext = getContext('app-context') as { currentPath: () => string } | undefined;
+
+	// Use context if available, fallback to direct page store
+	let currentPath = $derived(appContext ? appContext.currentPath() : $page.url.pathname);
 
 	function isActive(path: string) {
 		return currentPath === path;

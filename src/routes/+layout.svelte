@@ -3,13 +3,21 @@
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Toast from '$lib/components/ui/toast.svelte';
 	import { page } from '$app/stores';
+	import { setContext } from 'svelte';
 	import { type Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
-	
+
 	function isPresentation() {
 		return $page.url.pathname.includes('/presentation') || $page.url.pathname.includes('/table/');
 	}
+
+	// Set up context for shared state management
+	// This provides a clean way to share state without global variables
+	setContext('app-context', {
+		isPresentation: () => isPresentation(),
+		currentPath: () => $page.url.pathname
+	});
 </script>
 
 <div class="app">

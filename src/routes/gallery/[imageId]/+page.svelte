@@ -56,7 +56,8 @@
 	// Handle image error
 	function handleImageError() {
 		if (image) {
-			image.error = 'Failed to load image';
+			// Create a new object to maintain immutability
+			image = { ...image, error: 'Failed to load image' };
 		}
 	}
 
