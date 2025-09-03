@@ -10,6 +10,16 @@ const client = createClient({ url: databaseUrl });
 
 export const db = drizzle(client, { schema });
 
+// Cloudflare D1 Database support
+export function createDrizzle(platform: any) {
+	if (platform?.env?.z_interact_db) {
+		// Use Cloudflare D1 database
+		return drizzle(platform.env.z_interact_db, { schema });
+	}
+	// Fallback to default connection
+	return db;
+}
+
 // Helper function to initialize database
 export async function initDatabase() {
 	try {

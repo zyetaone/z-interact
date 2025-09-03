@@ -1,13 +1,14 @@
 import { json } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
+import { db, createDrizzle } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { NewImage } from '$lib/server/db/schema';
 import { sseManager } from '$lib/server/sse-manager';
 
-export async function GET() {
+export async function GET({ platform }) {
 	try {
-		const allImages = await db.select().from(images).orderBy(images.createdAt);
+		const database = createDrizzle(platform) || db;
+		const allImages = await database.select().from(images).orderBy(images.createdAt);
 		return json(allImages);
 	} catch (error) {
 		console.error('Failed to fetch images:', error);
@@ -15,13 +16,15 @@ export async function GET() {
 	}
 }
 
-export async function POST({ request }) {
+export async function POST({ request, platform }) {
 	try {
 		const body = await request.json();
 
 		if (!body.personaId || !body.personaTitle || !body.prompt) {
 			return json({ error: 'Missing required fields' }, { status: 400 });
 		}
+
+		const database = createDrizzle(platform) || db;
 
 		const newImage: NewImage = {
 			id: crypto.randomUUID(),
@@ -39,7 +42,7 @@ export async function POST({ request }) {
 			participantId: body.participantId || null
 		};
 
-		const [insertedImage] = await db.insert(images).values(newImage).returning();
+		const [insertedImage] = await database.insert(images).values(newImage).returning();
 
 		// Broadcast the new image to all connected clients
 		sseManager.broadcastMessage('image_locked', {
@@ -63,9 +66,10 @@ export async function POST({ request }) {
 }
 
 // DELETE endpoint to clear all images (for testing/demo purposes)
-export async function DELETE() {
+export async function DELETE({ platform }) {
 	try {
-		await db.delete(images);
+		const database = createDrizzle(platform) || db;
+		await database.delete(images);
 		return json({ success: true, message: 'All images cleared' });
 	} catch (error) {
 		console.error('Failed to clear images:', error);

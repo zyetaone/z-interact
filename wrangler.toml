@@ -1,0 +1,7 @@
+name = "z-interact"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "z_interact_db"
+database_name = "z-interact-db"
+database_id = "42c899ea-ff0f-4c9e-adfd-bcd3a4ae4ffa"
