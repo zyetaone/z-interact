@@ -7,7 +7,24 @@ const config = {
 	// Consult https://svelte.dev/docs/kit/integrations
 	// for more information about preprocessors
 	preprocess: [vitePreprocess(), mdsvex()],
-	kit: { adapter: adapter() },
+	kit: {
+		adapter: adapter({
+			// Point to our wrangler.toml for D1 bindings and other config
+			config: 'wrangler.toml',
+			// Configure routing for Pages Functions
+			routes: {
+				include: ['/*'],
+				exclude: [
+					'<prerendered>', // Exclude prerendered pages from Functions
+					'/favicon.svg',
+					'/robots.txt',
+					'/images/*'
+				]
+			},
+			// Use SPA fallback for better client-side routing
+			fallback: 'spa'
+		})
+	},
 	extensions: ['.svelte', '.svx']
 };
 
