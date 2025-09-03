@@ -280,25 +280,6 @@
 	</div>
 </main>
 
-
-
-			<!-- Image Details Footer -->
-			<div class="bg-white p-4 border-t">
-				<div class="max-w-4xl mx-auto">
-					<div class="flex items-center justify-between mb-3">
-						<span class="text-sm font-medium text-slate-700">Provider:</span>
-						<span class="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">{selectedImage.provider}</span>
-					</div>
-					<div>
-						<span class="text-sm font-medium text-slate-700 block mb-2">Prompt:</span>
-						<p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg leading-relaxed">{selectedImage.prompt}</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
-
 <style>
 	.line-clamp-2 {
 		display: -webkit-box;
