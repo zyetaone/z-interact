@@ -1,14 +1,14 @@
 import { json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import type { NewImage } from '$lib/server/db/schema';
 import { sseManager } from '$lib/server/sse-manager';
 
 export async function GET({ platform }) {
 	try {
 		const database = getDb(platform);
-		const allImages = await database.select().from(images).orderBy(images.createdAt);
+		const allImages = await database.select().from(images).orderBy(desc(images.createdAt));
 		return json(allImages);
 	} catch (error) {
 		console.error('Failed to fetch images:', error);
