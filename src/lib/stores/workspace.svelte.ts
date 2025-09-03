@@ -23,22 +23,16 @@ class WorkspaceStore {
 	}
 
 	async initialize() {
-		if (this.initialized) {
-			console.log('Workspace store already initialized');
-			return;
-		}
+		if (this.initialized) return;
+		await this.loadImages();
+		this.initialized = true;
+	}
 
-		console.log('Initializing workspace store...');
-
+	private async loadImages() {
 		try {
 			const response = await fetch('/api/images');
-			console.log('API response status:', response.status);
-
 			if (response.ok) {
 				const images = await response.json();
-				console.log('Received images from API:', images.length);
-
-				// Convert database format to app format
 				this.lockedImages = images.map((img: any) => ({
 					personaId: img.personaId,
 					personaTitle: img.personaTitle,
@@ -46,28 +40,18 @@ class WorkspaceStore {
 					prompt: img.prompt,
 					lockedAt: new Date(img.createdAt).toISOString()
 				}));
-
-				console.log('Converted images:', this.lockedImages.length);
-			} else {
-				console.error('Failed to load images: HTTP', response.status);
 			}
 		} catch (error) {
 			console.error('Failed to load images:', error);
-			// Initialize with empty array on error
 			this.lockedImages = [];
 		}
-
-		this.initialized = true;
-		console.log('Workspace store initialization complete');
 	}
 
 	async lockImage(image: LockedImage) {
 		try {
 			const response = await fetch('/api/images', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					...image,
 					provider: 'placeholder',
@@ -75,11 +59,7 @@ class WorkspaceStore {
 				})
 			});
 
-			if (!response.ok) {
-				throw new Error('Failed to lock image');
-			}
-
-			const result = await response.json();
+			if (!response.ok) throw new Error('Failed to lock image');
 
 			// Update local state
 			this.lockedImages = this.lockedImages.filter(img => img.personaId !== image.personaId);
@@ -87,7 +67,6 @@ class WorkspaceStore {
 			this.isGenerating[image.personaId] = false;
 
 			return image;
-
 		} catch (error) {
 			console.error('Failed to lock image:', error);
 			throw error;
@@ -99,22 +78,7 @@ class WorkspaceStore {
 	}
 
 	async refreshImages() {
-		try {
-			const response = await fetch('/api/images');
-			if (response.ok) {
-				const images = await response.json();
-				// Convert database format to app format
-				this.lockedImages = images.map((img: any) => ({
-					personaId: img.personaId,
-					personaTitle: img.personaTitle,
-					imageUrl: img.imageUrl,
-					prompt: img.prompt,
-					lockedAt: new Date(img.createdAt).toISOString()
-				}));
-			}
-		} catch (error) {
-			console.error('Failed to refresh images:', error);
-		}
+		await this.loadImages();
 	}
 
 	// Generate image using API

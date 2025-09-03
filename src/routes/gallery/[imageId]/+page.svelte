@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui';
 
 	// Define image type
-	interface ImageData {
+	interface GalleryImage {
 		id: string;
 		personaId: string;
 		personaTitle: string;
@@ -14,16 +14,17 @@
 		imageMimeType?: string;
 		prompt: string;
 		provider: string;
-		status: string;
 		createdAt: string;
-		updatedAt: string;
 		error?: string;
 	}
 
-	let imageId = $derived($page.params.imageId);
-	let image = $state<ImageData | null>(null);
+	// Use $state for reactive values
+	let image = $state<GalleryImage | null>(null);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
+
+	// Get imageId from page params
+	const imageId = $page.params.imageId;
 
 	// Fetch image data
 	async function fetchImage() {
@@ -92,10 +93,9 @@
 		}
 	}
 
-	$effect(() => {
-		if (imageId) {
-			fetchImage();
-		}
+	// Fetch image when component mounts
+	onMount(() => {
+		fetchImage();
 	});
 
 	function goBack() {
@@ -176,26 +176,26 @@
 					<h2 class="text-2xl font-semibold text-slate-900 mb-6">Generation Details</h2>
 					<div class="space-y-6">
 						<div>
-							<label class="text-base font-medium text-slate-700 block mb-3">AI Prompt:</label>
+							<h3 class="text-base font-medium text-slate-700 block mb-3">AI Prompt:</h3>
 							<div class="bg-white p-6 rounded-lg border text-slate-600 leading-relaxed text-lg shadow-sm">
 								{image.prompt}
 							</div>
 						</div>
 						<div class="grid md:grid-cols-3 gap-6">
 							<div>
-								<label class="text-base font-medium text-slate-700 block mb-3">Persona:</label>
+								<h3 class="text-base font-medium text-slate-700 block mb-3">Persona:</h3>
 								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
 									{image.personaTitle}
 								</div>
 							</div>
 							<div>
-								<label class="text-base font-medium text-slate-700 block mb-3">AI Provider:</label>
+								<h3 class="text-base font-medium text-slate-700 block mb-3">AI Provider:</h3>
 								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
 									{image.provider}
 								</div>
 							</div>
 							<div>
-								<label class="text-base font-medium text-slate-700 block mb-3">Generated:</label>
+								<h3 class="text-base font-medium text-slate-700 block mb-3">Generated:</h3>
 								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
 									{new Date(image.createdAt).toLocaleString()}
 								</div>

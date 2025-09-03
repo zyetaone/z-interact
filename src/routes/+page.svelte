@@ -12,7 +12,7 @@
 	let baseUrl = $state('');
 	let qrCodes = $state<Record<string, string>>({});
 	let isLoading = $state(true);
-	let showQRCodes = $state(true);
+
 	let qrModalOpen = $state(false);
 	let selectedPersona = $state<Persona | null>(null);
 
@@ -107,9 +107,7 @@
 		}
 	}
 
-	function toggleQRCodes() {
-		showQRCodes = !showQRCodes;
-	}
+
 </script>
 
 <svelte:head>
@@ -133,28 +131,21 @@
 
 		<!-- QR Code Section -->
 		<section class="mb-8">
-			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-3xl font-semibold text-slate-800">
-					Join Your Table
-				</h2>
-				<Button variant="outline" onclick={toggleQRCodes}>
-					{showQRCodes ? 'Hide' : 'Show'} QR Codes
-				</Button>
-			</div>
+			<h2 class="text-3xl font-semibold text-slate-800 mb-6">
+				Join Your Table
+			</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 				{#each personas as persona}
 					<div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all p-6 text-center">
 						<h3 class="text-2xl font-bold mb-2 text-slate-900">{persona.title}</h3>
 						<p class="text-slate-600 mb-4">{persona.description}</p>
 
-						{#if showQRCodes}
-							{#if isLoading}
-								<div class="w-48 h-48 mx-auto bg-slate-200 rounded-lg animate-pulse mb-4"></div>
-							{:else}
-								<div class="mb-4 flex justify-center">
-									<QRCodeGenerator url={`${baseUrl}/table/${persona.id}`} size={160} />
-								</div>
-							{/if}
+						{#if isLoading}
+							<div class="w-48 h-48 mx-auto bg-slate-200 rounded-lg animate-pulse mb-4"></div>
+						{:else}
+							<div class="mb-4 flex justify-center">
+								<QRCodeGenerator url={`${baseUrl}/table/${persona.id}`} size={160} />
+							</div>
 						{/if}
 
 						<div class="space-y-2">
@@ -176,11 +167,9 @@
 							</Button>
 						</div>
 
-						{#if showQRCodes}
-							<p class="text-xs text-slate-500 mt-2">
-								Scan QR code or click buttons above
-							</p>
-						{/if}
+						<p class="text-xs text-slate-500 mt-2">
+							Scan QR code or click buttons above
+						</p>
 					</div>
 				{/each}
 			</div>

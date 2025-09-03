@@ -4,49 +4,79 @@
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
 	import { sseClient } from '$lib/services/sse-client';
-	import { setGalleryContext, useGallery } from '$lib/stores/gallery-context.svelte';
 
-	// Set up gallery context for this component tree
-	const gallery = setGalleryContext();
+	interface GalleryImage {
+		id: string;
+		personaId: string;
+		personaTitle: string;
+		imageUrl: string;
+		imageData?: string;
+		imageMimeType?: string;
+		prompt: string;
+		provider: string;
+		createdAt: string;
+		error?: string | null;
+	}
 
-	// Use reactive state from context
-	let images = $derived(() => gallery.images);
-	let isLoading = $derived(() => gallery.isLoading);
-	let error = $derived(() => gallery.error);
-	let stats = $derived(() => gallery.stats);
+	// Simple reactive state
+	let images = $state<GalleryImage[]>([]);
+	let isLoading = $state(true);
+	let error = $state<string | null>(null);
+	
+	// Computed stats
+	let stats = $derived({
+		totalImages: images.length,
+		totalPersonas: new Set(images.map(img => img.personaId)).size,
+		imagesByProvider: images.reduce((acc, img) => {
+			acc[img.provider] = (acc[img.provider] || 0) + 1;
+			return acc;
+		}, {} as Record<string, number>)
+	});
 
-	// Initialize gallery on mount
+	// Load initial images
+	async function loadImages() {
+		isLoading = true;
+		error = null;
+		
+		try {
+			const response = await fetch('/api/images');
+			if (!response.ok) throw new Error('Failed to load images');
+			
+			const data = await response.json();
+			images = data.map((img: any) => ({
+				...img,
+				error: null
+			}));
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load gallery';
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Initialize on mount
 	onMount(async () => {
-		// Initialize gallery through context
-		await gallery.initialize();
+		await loadImages();
 
 		// Set up SSE for real-time updates
 		sseClient.connect();
 
-		// Listen for new images
 		sseClient.on('image_locked', (event) => {
 			console.log('🆕 New image locked:', event.data);
-			// Convert to gallery format and add
 			const newImage = {
-				id: event.data.id,
-				personaId: event.data.personaId,
-				personaTitle: event.data.personaTitle,
-				imageUrl: event.data.imageUrl,
-				imageData: event.data.imageData,
-				imageMimeType: event.data.imageMimeType,
-				prompt: event.data.prompt,
-				provider: event.data.provider,
-				createdAt: event.data.createdAt,
-				isLoading: false,
+				...event.data,
 				error: null
 			};
-			gallery.addImage(newImage);
+			
+			// Add or update image
+			const existingIndex = images.findIndex(img => img.id === newImage.id);
+			if (existingIndex >= 0) {
+				images[existingIndex] = newImage;
+			} else {
+				images = [newImage, ...images];
+			}
+			
 			toastStore.success(`New image submitted for ${event.data.personaTitle}!`);
-		});
-
-		// Listen for connection status
-		sseClient.on('connected', (event) => {
-			console.log('🔗 Connected to real-time updates');
 		});
 
 		return () => {
@@ -59,7 +89,7 @@
 			try {
 				const response = await fetch('/api/images', { method: 'DELETE' });
 				if (response.ok) {
-					gallery.clearImages();
+					images = [];
 					toastStore.success('All images cleared successfully');
 				} else {
 					toastStore.error('Failed to clear images');
@@ -71,51 +101,41 @@
 		}
 	}
 
-	// Handle image loading errors
 	function handleImageError(imageId: string) {
-		gallery.setImageError(imageId, 'Image expired or unavailable');
-		console.log(`❌ Image failed to load: ${imageId}`);
+		const index = images.findIndex(img => img.id === imageId);
+		if (index >= 0) {
+			images[index] = { ...images[index], error: 'Image expired or unavailable' };
+		}
 	}
 
-	// Get the best available image URL (stored > original)
-	function getImageUrl(image: any): string {
-		// If we have stored image data, use our API endpoint
+	function getImageUrl(image: GalleryImage): string {
 		if (image.imageData && image.imageMimeType) {
 			return `/api/images/${image.id}`;
 		}
-
-		// Fall back to stored URL if available
 		if (image.imageUrl && !isImageExpired(image.imageUrl)) {
 			return image.imageUrl;
 		}
-
-		// Last resort: use our API endpoint even if no data (will redirect)
 		return `/api/images/${image.id}`;
 	}
 
-	// Check if image URL is expired (for OpenAI URLs)
 	function isImageExpired(imageUrl: string): boolean {
 		if (!imageUrl || !imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
-			return false; // Not an OpenAI URL or no URL
+			return false;
 		}
-
 		try {
 			const url = new URL(imageUrl);
-			const se = url.searchParams.get('se'); // expiry time
+			const se = url.searchParams.get('se');
 			if (se) {
 				const expiryTime = new Date(se);
-				const now = new Date();
-				return now > expiryTime;
+				return new Date() > expiryTime;
 			}
 		} catch (error) {
 			console.error('Error parsing image URL:', error);
 		}
-
 		return false;
 	}
 
-	// Navigate to individual image page
-	function viewImage(image: any) {
+	function viewImage(image: GalleryImage) {
 		goto(`/gallery/${image.id}`);
 	}
 </script>
@@ -137,19 +157,17 @@
 			</p>
 		</header>
 
-
-
 		<!-- Stats Section -->
 		<section class="mb-8">
 			<div class="bg-white rounded-xl shadow-lg p-6">
 				<h3 class="text-xl font-semibold mb-4 text-slate-900">Gallery Stats</h3>
 				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 					<div class="text-center">
-						<div class="text-2xl font-bold text-blue-600">{stats.totalImages || 0}</div>
+						<div class="text-2xl font-bold text-blue-600">{stats.totalImages}</div>
 						<div class="text-sm text-slate-600">Total Designs</div>
 					</div>
 					<div class="text-center">
-						<div class="text-2xl font-bold text-green-600">{stats.totalPersonas || 0}</div>
+						<div class="text-2xl font-bold text-green-600">{stats.totalPersonas}</div>
 						<div class="text-sm text-slate-600">Active Personas</div>
 					</div>
 					<div class="text-center">
@@ -175,8 +193,6 @@
 			</div>
 		</section>
 
-
-
 		<!-- Gallery Grid -->
 		{#if isLoading}
 			<div class="flex justify-center items-center py-16">
@@ -191,7 +207,7 @@
 						Error Loading Gallery
 					</h3>
 					<p class="text-slate-500 mb-4">{error}</p>
-					<Button onclick={() => gallery.initialize()} variant="outline">
+					<Button onclick={loadImages} variant="outline">
 						Try Again
 					</Button>
 				</div>
@@ -209,7 +225,6 @@
 					>
 						<div class="aspect-video bg-slate-100 relative">
 							{#if image.error}
-								<!-- Error state -->
 								<div class="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600">
 									<div class="text-center">
 										<div class="text-4xl mb-2">❌</div>
@@ -217,7 +232,6 @@
 									</div>
 								</div>
 							{:else}
-								<!-- Normal image -->
 								<img
 									src={getImageUrl(image)}
 									alt="Workspace for {image.personaTitle}"
@@ -229,11 +243,7 @@
 							<div class="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
 								{image.provider}
 							</div>
-							{#if image.isLoading}
-								<div class="absolute inset-0 flex items-center justify-center bg-black/50">
-									<div class="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
-								</div>
-							{/if}
+
 						</div>
 						<div class="p-4">
 							<h3 class="font-semibold text-lg text-slate-900 mb-1">{image.personaTitle}</h3>
@@ -267,9 +277,9 @@
 		{#if images.length > 0}
 			<section class="mt-12">
 				<div class="bg-white rounded-xl shadow-lg p-6">
-					<h3 class="text-xl font-semibold mb-4 text-slate-900">Designs by Persona</h3>
+					<h3 class="text-xl font-semibold mb-4 text-slate-900">Designs by Provider</h3>
 					<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-						{#each Object.entries(stats.imagesByProvider || {}) as [provider, count]}
+						{#each Object.entries(stats.imagesByProvider) as [provider, count]}
 							<div class="text-center p-4 bg-slate-50 rounded-lg">
 								<div class="text-2xl font-bold text-slate-900">{count}</div>
 								<div class="text-sm text-slate-600">{provider}</div>
