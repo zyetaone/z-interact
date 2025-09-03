@@ -31,13 +31,7 @@
 		>
 			🖼️ Gallery
 		</Button>
-		<Button
-			variant={isActive('/participant') ? 'default' : 'ghost'}
-			class="rounded-md ml-1"
-			onclick={() => goto('/participant')}
-		>
-			👥 Participant
-		</Button>
+
 
 
 
