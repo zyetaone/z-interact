@@ -148,9 +148,8 @@
 					</div>
 				{/if}
 			</div>
-				</div>
 
-				<!-- Image Content - Full Width -->
+			<!-- Image Content - TRUE Full Width -->
 				<div class="p-0">
 					{#if isImageExpired(image.imageUrl)}
 						<!-- Expired image placeholder -->
