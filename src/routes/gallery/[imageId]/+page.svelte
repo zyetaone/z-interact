@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui';
-	import Navigation from '$lib/components/Navigation.svelte';
+
 
 	let imageId = $derived($page.params.imageId);
 	let image = $state(null);
@@ -77,8 +77,7 @@
 </svelte:head>
 
 <main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-	<!-- Navigation -->
-	<Navigation />
+
 
 	<div class="container mx-auto max-w-6xl p-4 md:p-8">
 		<!-- Back Button -->
