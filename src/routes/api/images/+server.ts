@@ -30,8 +30,6 @@ export async function POST({ request, platform }) {
 			personaId: body.personaId,
 			personaTitle: body.personaTitle,
 			imageUrl: body.imageUrl || null,
-			imageData: body.imageData || null,
-			imageMimeType: body.imageMimeType || null,
 			prompt: body.prompt,
 			provider: body.provider || 'placeholder',
 			status: body.status || 'completed',
@@ -41,10 +39,10 @@ export async function POST({ request, platform }) {
 			participantId: body.participantId || null
 		};
 
-		const [insertedImage] = await database.insert(images).values(newImage).returning();
+		await database.insert(images).values(newImage);
 
-		console.log(`✅ Image saved to database: ${insertedImage.id}`);
-		return json({ success: true, image: insertedImage });
+		console.log(`✅ Image saved to database: ${newImage.id}`);
+		return json({ success: true, image: newImage });
 
 	} catch (error) {
 		console.error('Failed to save image:', error);
