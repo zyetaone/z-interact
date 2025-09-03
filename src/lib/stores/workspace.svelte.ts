@@ -83,7 +83,7 @@ class WorkspaceStore {
 	}
 
 	// Generate image using API
-	async generateImage(personaId: string, prompt: string): Promise<string> {
+	async generateImage(personaId: string, prompt: string): Promise<{imageUrl: string, originalUrl: string}> {
 		this.setGenerating(personaId, true);
 
 		try {
@@ -101,7 +101,12 @@ class WorkspaceStore {
 
 			const data = await response.json();
 			this.setGenerating(personaId, false);
-			return data.imageUrl;
+			
+			// Return both URLs - data URL for display, original URL for database
+			return {
+				imageUrl: data.imageUrl, // data URL for immediate display
+				originalUrl: data.originalUrl || data.imageUrl // original URL for database storage
+			};
 
 		} catch (error) {
 			this.setGenerating(personaId, false);

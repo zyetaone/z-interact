@@ -22,6 +22,7 @@
 	});
 
 	let generatedImage = $state<string | null>(null);
+	let originalImageUrl = $state<string | null>(null);
 	let isLocked = $state(false);
 	let errors = $state<Partial<PromptFields>>({});
 
@@ -69,8 +70,9 @@
 		const finalPrompt = promptParts.join('\n');
 
 		try {
-			const imageUrl = await workspaceStore.generateImage(persona.id, finalPrompt);
-			generatedImage = imageUrl;
+			const result = await workspaceStore.generateImage(persona.id, finalPrompt);
+			generatedImage = result.imageUrl; // data URL for display
+			originalImageUrl = result.originalUrl; // original URL for database
 			toastStore.success('Image generated successfully!');
 		} catch (error) {
 			console.error('Image generation failed:', error);
@@ -97,7 +99,7 @@
 				tableId: table.id,
 				personaId: persona.id,
 				personaTitle: persona.title,
-				imageUrl: generatedImage,
+				imageUrl: originalImageUrl || generatedImage,
 				prompt: promptParts.join('\n'),
 				lockedAt: new Date().toISOString()
 			});
