@@ -5,13 +5,17 @@
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
 	import { sseClient } from '$lib/services/sse-client';
-	import Navigation from '$lib/components/Navigation.svelte';
+
 
 	// Convert stores to reactive state using Svelte 5
 	let images = $state([]);
 	let isLoading = $state(true);
 	let error = $state(null);
 	let stats = $state({});
+
+	// Modal state
+	let selectedImage = $state(null);
+	let modalOpen = $state(false);
 
 	// Initialize reactive state from stores
 	$effect(() => {
@@ -107,6 +111,17 @@
 
 		return false;
 	}
+
+	// Modal functions
+	function openImageModal(image: any) {
+		selectedImage = image;
+		modalOpen = true;
+	}
+
+	function closeImageModal() {
+		modalOpen = false;
+		selectedImage = null;
+	}
 </script>
 
 <svelte:head>
@@ -126,8 +141,7 @@
 			</p>
 		</header>
 
-		<!-- Navigation -->
-		<Navigation />
+
 
 		<!-- Stats Section -->
 		<section class="mb-8">
@@ -189,7 +203,7 @@
 		{:else if images.length > 0}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				{#each images as image (image.id)}
-					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick={() => openImageModal(image)}>
 						<div class="aspect-video bg-slate-100 relative">
 							{#if isImageExpired(image.imageUrl)}
 								<!-- Expired image placeholder -->
@@ -273,6 +287,71 @@
 		{/if}
 	</div>
 </main>
+
+<!-- Image Modal -->
+{#if modalOpen && selectedImage}
+	<div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onclick={closeImageModal}>
+		<div class="bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl" onclick={(e) => e.stopPropagation()}>
+			<!-- Modal Header -->
+			<div class="flex justify-between items-center p-4 border-b">
+				<div>
+					<h3 class="text-xl font-semibold text-slate-900">{selectedImage.personaTitle}</h3>
+					<p class="text-sm text-slate-600">Generated {new Date(selectedImage.createdAt).toLocaleString()}</p>
+				</div>
+				<button
+					class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+					onclick={closeImageModal}
+				>
+					✕
+				</button>
+			</div>
+
+			<!-- Modal Content -->
+			<div class="p-4">
+				{#if isImageExpired(selectedImage.imageUrl)}
+					<!-- Expired image placeholder -->
+					<div class="flex items-center justify-center bg-slate-200 text-slate-500 rounded-lg" style="height: 60vh;">
+						<div class="text-center">
+							<div class="text-6xl mb-4">⏰</div>
+							<div class="text-xl mb-2">Image expired</div>
+							<div class="text-sm opacity-75">Generated {new Date(selectedImage.createdAt).toLocaleDateString()}</div>
+						</div>
+					</div>
+				{:else if selectedImage.error}
+					<!-- Error state -->
+					<div class="flex items-center justify-center bg-red-50 text-red-600 rounded-lg" style="height: 60vh;">
+						<div class="text-center">
+							<div class="text-6xl mb-4">❌</div>
+							<div class="text-xl mb-2">{selectedImage.error}</div>
+						</div>
+					</div>
+				{:else}
+					<!-- Normal image -->
+					<div class="flex justify-center">
+						<img
+							src={selectedImage.imageUrl}
+							alt="Workspace for {selectedImage.personaTitle}"
+							class="max-w-full max-h-[60vh] object-contain rounded-lg"
+							onerror={() => handleImageError(selectedImage.id)}
+						/>
+					</div>
+				{/if}
+
+				<!-- Image Details -->
+				<div class="mt-4">
+					<div class="flex items-center justify-between mb-2">
+						<span class="text-sm font-medium text-slate-700">Provider:</span>
+						<span class="text-sm text-slate-600 bg-slate-100 px-2 py-1 rounded">{selectedImage.provider}</span>
+					</div>
+					<div class="mb-4">
+						<span class="text-sm font-medium text-slate-700 block mb-1">Prompt:</span>
+						<p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedImage.prompt}</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.line-clamp-2 {
