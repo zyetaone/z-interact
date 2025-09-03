@@ -1,85 +1,52 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import QRCode from 'qrcode';
-	import { personas, type Persona } from '$lib/personas';
+	import { onMount, afterUpdate } from 'svelte';
+	import { config } from '$lib/config';
 	import { workspaceStore } from '$lib/stores/workspace.svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
-	import { Button, QRCodeGenerator, QRModal } from '$lib/components/ui';
+	import { Button, QRCodeGenerator } from '$lib/components/ui';
 	import { copyToClipboard } from '$lib/utils';
 	import { goto } from '$app/navigation';
 
-
 	let baseUrl = $state('');
-	let qrCodes = $state<Record<string, string>>({});
-	let isLoading = $state(true);
-
-	let qrModalOpen = $state(false);
-	let selectedPersona = $state<Persona | null>(null);
-
-	// Generate QR code for a persona
-	async function generateQRCode(persona: Persona): Promise<string> {
-		if (!baseUrl) return '';
-
-		const url = `${baseUrl}/table/${persona.id}`;
-
-		try {
-			return await QRCode.toDataURL(url, {
-				width: 256,
-				margin: 2,
-				color: {
-					dark: '#1e293b',
-					light: '#ffffff'
-				}
-			});
-		} catch (error) {
-			console.error('QR Code generation failed:', error);
-			return '';
-		}
-	}
-
-	// Generate all QR codes
-	async function generateAllQRCodes() {
-		const codes: Record<string, string> = {};
-
-		for (const persona of personas) {
-			codes[persona.id] = await generateQRCode(persona);
-		}
-
-		qrCodes = codes;
-		isLoading = false;
-	}
+	let selectedTableNumber = $state(1);
+	let maxTables = config.tables.length;
 
 	$effect(() => {
 		if (typeof window !== 'undefined') {
 			baseUrl = window.location.origin;
-			generateAllQRCodes();
-
-			// Initialize store (loads images once)
 			workspaceStore.initialize();
 		}
 	});
 
-	// Manual refresh function for cost efficiency
-	async function refreshImages() {
-		try {
-			await workspaceStore.refreshImages();
-			toastStore.success('Images refreshed');
-		} catch (error) {
-			console.error('Failed to refresh images:', error);
-			toastStore.error('Failed to refresh images');
+	const selectedUrl = $derived(`${baseUrl}/table/${selectedTableNumber}`);
+
+	function incrementTable() {
+		if (selectedTableNumber < maxTables) {
+			selectedTableNumber++;
 		}
 	}
 
-	onMount(() => {
-		isLoading = false;
-	});
+	function decrementTable() {
+		if (selectedTableNumber > 1) {
+			selectedTableNumber--;
+		}
+	}
+
+	async function copyUrl() {
+		const success = await copyToClipboard(selectedUrl);
+		if (success) {
+			toastStore.success(`Copied ${selectedUrl} to clipboard`);
+		} else {
+			toastStore.error('Failed to copy link');
+		}
+	}
 
 	async function clearAllImages() {
 		if (confirm('Are you sure you want to clear all locked images? This cannot be undone.')) {
 			try {
 				const response = await fetch('/api/images', { method: 'DELETE' });
 				if (response.ok) {
-					await workspaceStore.refreshImages(); // Refresh after clearing
+					await workspaceStore.refreshImages();
 					toastStore.success('All images cleared successfully');
 				} else {
 					toastStore.error('Failed to clear images');
@@ -90,135 +57,67 @@
 			}
 		}
 	}
-
-	function openQRModal(persona: Persona) {
-		selectedPersona = persona;
-		qrModalOpen = true;
-	}
-
-	async function copyPersonaUrl(persona: Persona) {
-		const url = `${baseUrl}/table/${persona.id}`;
-		const success = await copyToClipboard(url);
-		if (success) {
-			toastStore.success(`Copied ${persona.title} link to clipboard`);
-		} else {
-			toastStore.error('Failed to copy link');
-		}
-	}
-
-
 </script>
 
 <svelte:head>
-	<title>Z-Interact - QR Codes</title>
+	<title>Z-Interact - Admin Controls</title>
 	<meta name="description" content="Interactive workspace design collaboration" />
 </svelte:head>
 
 <main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
-	<div class="container mx-auto max-w-6xl">
+	<div class="container mx-auto max-w-2xl">
 		<!-- Header -->
 		<header class="text-center mb-8">
 			<h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-2">
-				Z-Interact
+				Z-Interact Admin
 			</h1>
 			<p class="text-slate-600 text-lg">
-				AI-Powered Workspace Design Collaboration
+				Presenter & Admin Controls
 			</p>
 		</header>
 
-		<!-- Controls -->
-		<div class="flex justify-center gap-4 mb-8">
-			<Button onclick={refreshImages} variant="outline">
-				🔄 Refresh Images
-			</Button>
-			<a href="/gallery">
-				<Button variant="outline">
-					🖼️ View Gallery
-				</Button>
-			</a>
-		</div>
-
-
-
-		<!-- QR Code Section -->
-		<section class="mb-8">
-			<h2 class="text-3xl font-semibold text-slate-800 mb-6">
-				Join Your Table
+		<!-- QR Code Generator Section -->
+		<section class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8">
+			<h2 class="text-2xl md:text-3xl font-semibold text-slate-800 mb-6 text-center">
+				Table QR Code Generator
 			</h2>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				{#each personas as persona}
-					<div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all p-6 text-center">
-						<h3 class="text-2xl font-bold mb-2 text-slate-900">{persona.title}</h3>
-						<p class="text-slate-600 mb-4">{persona.description}</p>
 
-						{#if isLoading}
-							<div class="w-48 h-48 mx-auto bg-slate-200 rounded-lg animate-pulse mb-4"></div>
-						{:else}
-							<div class="mb-4 flex justify-center">
-								<QRCodeGenerator url={`${baseUrl}/table/${persona.id}`} size={160} />
-							</div>
-						{/if}
+			<div class="flex items-center justify-center gap-4 mb-6">
+				<Button onclick={decrementTable} disabled={selectedTableNumber <= 1} variant="outline" size="icon">
+					-
+				</Button>
+				<span class="text-4xl font-bold text-slate-800 w-24 text-center">{selectedTableNumber}</span>
+				<Button onclick={incrementTable} disabled={selectedTableNumber >= maxTables} variant="outline" size="icon">
+					+
+				</Button>
+			</div>
 
-						<div class="space-y-2">
-							<Button
-								variant="outline"
-								size="sm"
-								class="w-full"
-								onclick={() => openQRModal(persona)}
-							>
-								📱 View Large QR
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								class="w-full"
-								onclick={() => copyPersonaUrl(persona)}
-							>
-								📋 Copy Link
-							</Button>
-						</div>
+			<div class="flex justify-center mb-6">
+				<QRCodeGenerator url={selectedUrl} size={256} />
+			</div>
 
-						<p class="text-xs text-slate-500 mt-2">
-							Scan QR code or click buttons above
-						</p>
-					</div>
-				{/each}
+			<div class="text-center">
+				<p class="text-slate-600 mb-2">URL for Table {selectedTableNumber}:</p>
+				<div class="bg-slate-100 rounded-lg p-3 flex items-center justify-between">
+					<code class="text-sm text-slate-800 break-all">{selectedUrl}</code>
+					<Button onclick={copyUrl} variant="ghost" size="sm">Copy</Button>
+				</div>
 			</div>
 		</section>
 
-		<!-- Quick Stats -->
-		<section class="bg-white rounded-xl shadow-lg p-6">
-			<h3 class="text-xl font-semibold mb-4 text-slate-900">Session Stats</h3>
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<div class="text-center">
-					<div class="text-2xl font-bold text-blue-600">{personas.length}</div>
-					<div class="text-sm text-slate-600">Available Personas</div>
-				</div>
-				<div class="text-center">
-					<div class="text-2xl font-bold text-green-600">{workspaceStore.images.length}</div>
-					<div class="text-sm text-slate-600">Completed Designs</div>
-				</div>
-				<div class="text-center">
-					<Button
-						variant="outline"
-						size="sm"
-						onclick={() => goto('/gallery')}
-						class="mt-2"
-					>
-						View Gallery →
-					</Button>
-				</div>
+		<!-- Session Management -->
+		<section class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+			<h2 class="text-2xl md:text-3xl font-semibold text-slate-800 mb-6 text-center">
+				Session Management
+			</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<Button onclick={() => goto('/gallery')} variant="default" class="w-full">
+					🖼️ View Live Gallery
+				</Button>
+				<Button onclick={clearAllImages} variant="destructive" class="w-full">
+					🗑️ Clear All Images
+				</Button>
 			</div>
 		</section>
 	</div>
 </main>
-
-<!-- QR Modal -->
-{#if selectedPersona}
-	<QRModal
-		bind:open={qrModalOpen}
-		url={`${baseUrl}/table/${selectedPersona.id}`}
-		title={`${selectedPersona.title} - Join Table`}
-		description={selectedPersona.description}
-	/>
-{/if}
