@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
 import { db } from '$lib/server/db';
-import { users, sessions } from '$lib/server/db/schema';
+import { users, authSessions } from '$lib/server/db/schema';
 import { hash, verify } from '@node-rs/argon2';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -57,7 +57,7 @@ export async function createSession(token: string, userId: string) {
 		userId,
 		expiresAt: new Date(Date.now() + DAY_IN_MS * 30)
 	};
-	await db.insert(sessions).values(session);
+	await db.insert(authSessions).values(session);
 	return session;
 }
 
@@ -72,9 +72,9 @@ export async function validateSessionToken(token: string) {
 			},
 			session: sessions
 		})
-		.from(sessions)
-		.innerJoin(users, eq(sessions.userId, users.id))
-		.where(eq(sessions.id, sessionId));
+		.from(authSessions)
+		.innerJoin(users, eq(authSessions.userId, users.id))
+		.where(eq(authSessions.id, sessionId));
 
 	if (!result) {
 		return { session: null, user: null };
@@ -83,7 +83,7 @@ export async function validateSessionToken(token: string) {
 
 	const sessionExpired = Date.now() >= session.expiresAt.getTime();
 	if (sessionExpired) {
-		await db.delete(sessions).where(eq(sessions.id, session.id));
+		await db.delete(authSessions).where(eq(authSessions.id, session.id));
 		return { session: null, user: null };
 	}
 
@@ -91,9 +91,9 @@ export async function validateSessionToken(token: string) {
 	if (renewSession) {
 		session.expiresAt = new Date(Date.now() + DAY_IN_MS * 30);
 		await db
-			.update(sessions)
+			.update(authSessions)
 			.set({ expiresAt: session.expiresAt })
-			.where(eq(sessions.id, session.id));
+			.where(eq(authSessions.id, session.id));
 	}
 
 	return { session, user };

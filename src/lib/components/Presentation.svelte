@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import { Button as ButtonRoot } from 'bits-ui';
+	// Using regular HTML buttons instead of bits-ui
 	import Slide from './Slide.svelte';
 	import PresenterDashboard from './PresenterDashboard.svelte';
 	import { onMount } from 'svelte';
@@ -129,14 +129,12 @@
 				<div class="mt-2 text-center text-xs text-white/60">
 					Slide {currentSlide + 1}
 				</div>
-				<ButtonRoot
-					variant="outline"
-					size="sm"
+				<button
 					onclick={copySlideUrl}
-					class="mt-2 w-full border-white/30 bg-white/10 text-xs text-white hover:bg-white/20"
+					class="mt-2 w-full border border-white/30 bg-white/10 text-xs text-white hover:bg-white/20 rounded px-3 py-1"
 				>
 					📋 Copy URL
-				</ButtonRoot>
+				</button>
 			</div>
 
 			<!-- QR Code Display - Mobile -->
@@ -158,44 +156,38 @@
 
 	<!-- Navigation -->
 	<div class="navigation fixed bottom-8 left-1/2 flex -translate-x-1/2 transform gap-4">
-		<ButtonRoot
-			variant="outline"
-			size="lg"
+		<button
 			onclick={prevSlide}
 			disabled={currentSlide === 0}
 			class={cn(
-				'border-white/20 bg-white/10 text-white hover:bg-white/20',
+				'px-4 py-2 border border-white/20 bg-white/10 text-white hover:bg-white/20 rounded',
 				currentSlide === 0 && 'cursor-not-allowed opacity-50'
 			)}
 		>
 			Previous
-		</ButtonRoot>
+		</button>
 
 		<div class="flex items-center gap-2 text-white/70">
 			{currentSlide + 1} / {slideData.length}
 		</div>
 
-		<ButtonRoot
-			variant="outline"
-			size="lg"
+		<button
 			onclick={nextSlide}
 			disabled={currentSlide === slideData.length - 1}
 			class={cn(
-				'border-white/20 bg-white/10 text-white hover:bg-white/20',
+				'px-4 py-2 border border-white/20 bg-white/10 text-white hover:bg-white/20 rounded',
 				currentSlide === slideData.length - 1 && 'cursor-not-allowed opacity-50'
 			)}
 		>
 			Next
-		</ButtonRoot>
+		</button>
 
-		<ButtonRoot
-			variant="outline"
-			size="lg"
+		<button
 			onclick={() => (isDashboardOpen = true)}
-			class="ml-4 border-white/20 bg-white/10 text-white hover:bg-white/20"
+			class="ml-4 px-4 py-2 border border-white/20 bg-white/10 text-white hover:bg-white/20 rounded"
 		>
 			📊 Dashboard
-		</ButtonRoot>
+		</button>
 	</div>
 
 	<!-- Presenter Dashboard -->

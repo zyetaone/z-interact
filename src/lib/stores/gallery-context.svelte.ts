@@ -19,22 +19,24 @@ interface GalleryContext {
 	clearImages: () => void;
 }
 
+// Import types from gallery store
+import type { GalleryImage } from './gallery.svelte';
+
 // Create gallery context store
 function createGalleryContext(): GalleryContext {
 	// Use Svelte 5 reactive state
-	let images = $state([]);
-	let isLoading = $state(true);
-	let error = $state(null);
-	let stats = $state({});
+	let images = $state<GalleryImage[]>([]);
+	let isLoading = $state<boolean>(true);
+	let error = $state<string | null>(null);
+	let stats = $state<any>({});
 
 	// Subscribe to existing stores (but don't mutate them directly)
 	$effect(() => {
-		const unsubImages = galleryImages.subscribe(current => images = current);
-		const unsubLoading = isGalleryLoading.subscribe(current => isLoading = current);
-		const unsubError = galleryError.subscribe(current => error = current);
-		const unsubStats = galleryStats.subscribe(current => stats = current);
+		const unsubImages = galleryImages.subscribe((current: GalleryImage[]) => images = current);
+		const unsubLoading = isGalleryLoading.subscribe((current: boolean) => isLoading = current);
+		const unsubError = galleryError.subscribe((current: string | null) => error = current);
+		const unsubStats = galleryStats.subscribe((current: any) => stats = current);
 
-		// Cleanup subscriptions
 		return () => {
 			unsubImages();
 			unsubLoading();
@@ -61,10 +63,10 @@ function createGalleryContext(): GalleryContext {
 	}
 
 	return {
-		get images() { return images; },
-		get isLoading() { return isLoading; },
-		get error() { return error; },
-		get stats() { return stats; },
+		images,
+		isLoading,
+		error,
+		stats,
 		initialize,
 		addImage,
 		setImageError,

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import { Button as ButtonRoot, Dialog as DialogRoot, Label, Textarea } from 'bits-ui';
+	// Temporarily using regular HTML elements instead of bits-ui to fix compilation errors
+	// import { Button as ButtonRoot, Dialog as DialogRoot, Label, Textarea } from 'bits-ui';
 
 	let {
 		slideData = $bindable([]),
@@ -99,8 +100,8 @@
 	}
 </script>
 
-<DialogRoot bind:open={isDashboardOpen}>
-	<DialogRoot.Content class="max-h-[90vh] max-w-6xl overflow-hidden">
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" class:hidden={!isDashboardOpen}>
+	<div class="bg-white rounded-lg max-h-[90vh] max-w-6xl overflow-hidden w-full mx-4">
 		<div class="border-b p-6">
 			<DialogRoot.Title class="text-xl font-semibold">Presenter Dashboard</DialogRoot.Title>
 			<DialogRoot.Description class="mt-1 text-gray-600">
@@ -113,7 +114,7 @@
 			<div class="col-span-3 overflow-y-auto border-r border-gray-200 pr-4">
 				<div class="mb-4 flex items-center justify-between">
 					<h3 class="text-lg font-semibold">Slides</h3>
-					<ButtonRoot variant="outline" size="sm" onclick={addSlide}>+ Add Slide</ButtonRoot>
+					<button class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50" onclick={addSlide}>+ Add Slide</button>
 				</div>
 
 				<div class="space-y-2">
@@ -141,27 +142,25 @@
 									{index + 1}. {slide.title}
 								</span>
 								<div class="flex gap-1">
-									<ButtonRoot
-										variant="ghost"
-										size="sm"
+									<button
+										class="p-1 hover:bg-gray-100 rounded"
 										onclick={(e: Event) => {
 											e.stopPropagation();
 											startEditing(index);
 										}}
 									>
 										✏️
-									</ButtonRoot>
-									<ButtonRoot
-										variant="ghost"
-										size="sm"
+									</button>
+									<button
+										class="p-1 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+										disabled={slideData.length <= 1}
 										onclick={(e: Event) => {
 											e.stopPropagation();
 											deleteSlide(index);
 										}}
-										disabled={slideData.length <= 1}
 									>
 										🗑️
-									</ButtonRoot>
+									</button>
 								</div>
 							</div>
 							<div class="line-clamp-2 text-xs text-gray-600">
@@ -191,21 +190,25 @@
 
 				<!-- Navigation Controls -->
 				<div class="mt-4 flex items-center justify-center gap-4">
-					<ButtonRoot variant="outline" onclick={prevSlide} disabled={currentSlide === 0}>
+					<button
+						class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+						onclick={prevSlide}
+						disabled={currentSlide === 0}
+					>
 						⬅️ Previous
-					</ButtonRoot>
+					</button>
 
 					<span class="text-sm text-gray-600">
 						{currentSlide + 1} / {slideData.length}
 					</span>
 
-					<ButtonRoot
-						variant="outline"
+					<button
+						class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={nextSlide}
 						disabled={currentSlide === slideData.length - 1}
 					>
 						Next ➡️
-					</ButtonRoot>
+					</button>
 				</div>
 			</div>
 
@@ -228,30 +231,31 @@
 				<div class="mt-6">
 					<h4 class="text-md mb-3 font-semibold">Quick Actions</h4>
 					<div class="space-y-2">
-						<ButtonRoot
-							variant="outline"
-							size="sm"
-							class="w-full justify-start"
+						<button
+							class="w-full text-left px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-2"
 							onclick={() => startEditing(currentSlide)}
 						>
 							✏️ Edit Current Slide
-						</ButtonRoot>
-						<ButtonRoot variant="outline" size="sm" class="w-full justify-start" onclick={addSlide}>
+						</button>
+						<button
+							class="w-full text-left px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-2"
+							onclick={addSlide}
+						>
 							➕ Add New Slide
-						</ButtonRoot>
+						</button>
 					</div>
 				</div>
 			</div>
 		</div>
-	</DialogRoot.Content>
-</DialogRoot>
+		</div>
+	</div>
 
 <!-- Edit Dialog -->
 {#if isEditing}
-	<DialogRoot bind:open={isEditing}>
-		<DialogRoot.Content class="max-w-2xl">
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick={() => isEditing = false}>
+		<div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" onclick={(e) => e.stopPropagation()}>
 			<div class="border-b p-6">
-				<DialogRoot.Title class="text-xl font-semibold">Edit Slide</DialogRoot.Title>
+				<h2 class="text-xl font-semibold">Edit Slide</h2>
 			</div>
 
 			<div class="space-y-4">
@@ -266,32 +270,44 @@
 				</div>
 
 				<div>
-					<Label for="edit-content">Content (HTML)</Label>
-					<Textarea
+					<label for="edit-content" class="mb-1 block text-sm font-medium text-gray-700">Content (HTML)</label>
+					<textarea
 						id="edit-content"
 						bind:value={editContent}
 						placeholder="Slide content (HTML allowed)"
 						rows={6}
-					/>
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					></textarea>
 				</div>
 
 				<div>
-					<Label for="edit-notes">Presenter Notes</Label>
-					<Textarea
+					<label for="edit-notes" class="mb-1 block text-sm font-medium text-gray-700">Presenter Notes</label>
+					<textarea
 						id="edit-notes"
 						bind:value={editNotes}
 						placeholder="Notes for presenter"
 						rows={4}
-					/>
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					></textarea>
 				</div>
 			</div>
 
 			<div class="flex justify-end gap-3 border-t p-6">
-				<ButtonRoot variant="outline" onclick={cancelEdit}>Cancel</ButtonRoot>
-				<ButtonRoot onclick={saveEdit}>Save Changes</ButtonRoot>
+				<button
+					class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+					onclick={cancelEdit}
+				>
+					Cancel
+				</button>
+				<button
+					class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+					onclick={saveEdit}
+				>
+					Save Changes
+				</button>
 			</div>
-		</DialogRoot.Content>
-	</DialogRoot>
+		</div>
+	</div>
 {/if}
 
 <style>

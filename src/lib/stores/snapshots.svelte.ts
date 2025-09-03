@@ -1,4 +1,5 @@
-import { snapshot, restore } from '$app/snapshots';
+// Note: $app/snapshots is not available in this version of SvelteKit
+// This is a placeholder for future implementation when snapshots are available
 
 // Snapshot key for our app's ephemeral state
 const SNAPSHOT_KEY = 'z-interact-ui-state';
@@ -13,14 +14,20 @@ interface EphemeralState {
 	scrollPosition?: number;
 }
 
-// Save ephemeral state to snapshot
+// Save ephemeral state to localStorage (fallback for snapshots)
 export function saveUIState(state: EphemeralState) {
-	snapshot(SNAPSHOT_KEY, state);
+	if (typeof window !== 'undefined') {
+		localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(state));
+	}
 }
 
-// Restore ephemeral state from snapshot
+// Restore ephemeral state from localStorage
 export function getUIState(): EphemeralState | null {
-	return restore(SNAPSHOT_KEY) as EphemeralState | null;
+	if (typeof window !== 'undefined') {
+		const stored = localStorage.getItem(SNAPSHOT_KEY);
+		return stored ? JSON.parse(stored) : null;
+	}
+	return null;
 }
 
 // Helper function to create a snapshot-enabled store

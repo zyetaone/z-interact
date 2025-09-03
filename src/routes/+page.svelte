@@ -6,6 +6,7 @@
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button, QRCodeGenerator, QRModal } from '$lib/components/ui';
 	import { copyToClipboard } from '$lib/utils';
+	import { goto } from '$app/navigation';
 
 
 	let baseUrl = $state('');

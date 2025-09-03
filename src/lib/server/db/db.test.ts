@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db } from './index';
-import { images, users, sessions } from './schema';
+import { images, users, authSessions } from './schema';
 import { eq } from 'drizzle-orm';
 
 describe('Database Operations', () => {
 	beforeEach(async () => {
 		// Clean up before each test
 		await db.delete(images);
-		await db.delete(sessions);
+		await db.delete(authSessions);
 		await db.delete(users);
 	});
 
 	afterEach(async () => {
 		// Clean up after each test
 		await db.delete(images);
-		await db.delete(sessions);
+		await db.delete(authSessions);
 		await db.delete(users);
 	});
 
@@ -152,21 +152,21 @@ describe('Database Operations', () => {
 				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
 			};
 
-			await db.insert(sessions).values(testSession);
+			await db.insert(authSessions).values(testSession);
 
 			// Validate session with join
 			const [sessionWithUser] = await db
 				.select({
-					session: sessions,
+					session: authSessions,
 					user: {
 						id: users.id,
 						email: users.email,
 						role: users.role
 					}
 				})
-				.from(sessions)
-				.innerJoin(users, eq(sessions.userId, users.id))
-				.where(eq(sessions.id, testSession.id));
+				.from(authSessions)
+				.innerJoin(users, eq(authSessions.userId, users.id))
+				.where(eq(authSessions.id, testSession.id));
 
 			expect(sessionWithUser).toBeDefined();
 			expect(sessionWithUser?.user.email).toBe(testUser.email);

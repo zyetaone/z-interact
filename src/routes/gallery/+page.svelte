@@ -199,7 +199,14 @@
 		{:else if images.length > 0}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				{#each images as image (image.id)}
-					<div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick={() => viewImage(image)}>
+					<div
+						class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+						onclick={() => viewImage(image)}
+						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewImage(image); } }}
+						role="button"
+						tabindex="0"
+						aria-label={`View ${image.personaTitle} workspace design`}
+					>
 						<div class="aspect-video bg-slate-100 relative">
 							{#if image.error}
 								<!-- Error state -->

@@ -11,13 +11,13 @@ function loadEnvFile() {
 		const envPath = path.join(process.cwd(), '.env');
 		if (fs.existsSync(envPath)) {
 			const envContent = fs.readFileSync(envPath, 'utf-8');
-			envCache = envContent.split('\n').reduce((acc, line) => {
+			envCache = envContent.split('\n').reduce((acc: Record<string, string>, line) => {
 				const [key, ...valueParts] = line.split('=');
 				if (key && valueParts.length > 0) {
 					acc[key.trim()] = valueParts.join('=').trim().replace(/^['"]|['"]$/g, '');
 				}
 				return acc;
-			}, {});
+			}, {} as Record<string, string>);
 		} else {
 			envCache = {};
 		}

@@ -22,6 +22,13 @@ export const sessions = sqliteTable('sessions', {
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
+// Auth sessions table for user authentication
+export const authSessions = sqliteTable('auth_sessions', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').references(() => users.id).notNull(),
+	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+});
+
 // Participants table for session attendees
 export const participants = sqliteTable('participants', {
 	id: text('id').primaryKey(),
@@ -62,6 +69,7 @@ export const activityLogs = sqliteTable('activity_logs', {
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
+	authSessions: many(authSessions),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one, many }) => ({
@@ -72,6 +80,13 @@ export const sessionsRelations = relations(sessions, ({ one, many }) => ({
 	participants: many(participants),
 	images: many(images),
 	activityLogs: many(activityLogs),
+}));
+
+export const authSessionsRelations = relations(authSessions, ({ one }) => ({
+	user: one(users, {
+		fields: [authSessions.userId],
+		references: [users.id],
+	}),
 }));
 
 export const participantsRelations = relations(participants, ({ one, many }) => ({
@@ -86,7 +101,7 @@ export const participantsRelations = relations(participants, ({ one, many }) => 
 export const imagesRelations = relations(images, ({ one }) => ({
 	session: one(sessions, {
 		fields: [images.sessionId],
-		references: [images.id],
+		references: [sessions.id],
 	}),
 	participant: one(participants, {
 		fields: [images.participantId],
