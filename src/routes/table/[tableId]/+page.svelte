@@ -467,5 +467,5 @@
 				</Button>
 			{/snippet}
 		</Modal>
-	</main>
+	</div>
 {/if}
