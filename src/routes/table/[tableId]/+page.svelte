@@ -254,10 +254,10 @@
 		</div>
 
 		<!-- Main Container with Two Panels -->
-		<div class="flex h-[calc(100vh-3.5rem)] flex-col overflow-auto lg:flex-row lg:overflow-hidden">
+		<div class="flex min-h-[calc(100vh-3.5rem)] flex-col overflow-y-auto lg:h-[calc(100vh-3.5rem)] lg:flex-row lg:overflow-hidden">
 			<!-- Left Panel: Form Questions -->
 			<div class="flex w-full flex-col bg-white dark:bg-gray-900 lg:w-1/2 lg:overflow-y-auto">
-				<div class="flex flex-1 flex-col p-6">
+				<div class="flex flex-col p-6 lg:flex-1">
 					<!-- Form Header -->
 					<div class="mb-6 flex-shrink-0">
 						<h1 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
@@ -274,7 +274,7 @@
 							e.preventDefault();
 							generateImage();
 						}}
-						class="flex min-h-0 flex-1 flex-col"
+						class="flex flex-1 flex-col lg:min-h-0"
 					>
 						<div class="flex-1 space-y-4">
 							{#each persona.promptStructure as { label, field, fieldSuggestions }}
@@ -338,7 +338,7 @@
 
 			<!-- Right Panel: Image Preview & Controls -->
 			<div class="flex w-full flex-col border-t bg-gray-50 dark:border-gray-700 dark:bg-gray-800 lg:w-1/2 lg:overflow-y-auto lg:border-l lg:border-t-0 {generatedImage || progressValue > 50 ? '' : 'hidden lg:flex'}">
-				<div class="flex flex-1 flex-col p-6">
+				<div class="flex flex-col p-6 lg:flex-1">
 					<!-- Header -->
 					<div class="mb-6 flex-shrink-0">
 						<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
@@ -350,7 +350,7 @@
 					</div>
 
 					<!-- Image Display -->
-					<div class="mb-6 flex flex-1 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900">
+					<div class="mb-6 flex aspect-video items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900 lg:flex-1 lg:aspect-auto">
 						{#if isGenerating}
 							<div class="flex flex-col items-center gap-4 p-8 text-gray-500 dark:text-gray-400">
 								<Spinner size="10" />
