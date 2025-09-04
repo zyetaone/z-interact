@@ -103,9 +103,9 @@ export async function POST(event: RequestEvent) {
 			provider: 'openai',
 			status: 'completed',
 			createdAt: new Date(),
-			updatedAt: new Date(),
-			migrationStatus: 'completed',
-			migratedAt: null
+			updatedAt: new Date()
+			// migrationStatus: 'completed',  // Column may not exist in Cloudflare D1
+			// migratedAt: null
 		};
 
 		console.log('Inserting image into database...');

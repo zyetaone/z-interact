@@ -17,8 +17,8 @@ export const images = sqliteTable('images', {
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }),
 	// r2Key: text('r2_key'), // Temporarily commented - column doesn't exist in Cloudflare D1
-	migrationStatus: text('migration_status').default('pending'),
-	migratedAt: integer('migrated_at', { mode: 'timestamp' })
+	// migrationStatus: text('migration_status').default('pending'), // Column doesn't exist in Cloudflare D1
+	// migratedAt: integer('migrated_at', { mode: 'timestamp' }) // Column doesn't exist in Cloudflare D1
 });
 
 // Drizzle-inferred types
