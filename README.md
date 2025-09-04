@@ -337,4 +337,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 _Last updated: September 2024_
+
 # Cloudflare deployment trigger

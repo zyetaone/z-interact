@@ -149,7 +149,11 @@
 				Quick Actions
 			</h2>
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-				<Button onclick={() => goto('/gallery')} variant="outline" class="w-full border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+				<Button
+					onclick={() => goto('/gallery')}
+					variant="outline"
+					class="w-full border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+				>
 					🖼️ View Live Gallery
 				</Button>
 				<Button onclick={clearAllImages} variant="destructive" class="w-full">
