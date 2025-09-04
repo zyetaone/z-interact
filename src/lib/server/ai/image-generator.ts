@@ -19,12 +19,9 @@ export class ImageGenerator {
 		const { prompt } = options;
 
 		try {
-			console.log('🎨 Generating image with OpenAI DALL-E 3...');
 			return await this.generateWithOpenAI(options);
 		} catch (error) {
-			console.error('❌ OpenAI generation failed:', error);
 			// Fallback to placeholder if OpenAI fails
-			console.log('⚠️ Using fallback image generation');
 			return this.generateFallback(prompt);
 		}
 	}

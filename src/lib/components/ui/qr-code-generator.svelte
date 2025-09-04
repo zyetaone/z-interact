@@ -43,7 +43,6 @@
 			qrCodeDataUrl = dataUrl;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to generate QR code';
-			console.error('QR Code generation error:', err);
 		} finally {
 			loading = false;
 		}

@@ -9,30 +9,35 @@ An interactive seminar experience platform that combines real-time collaboration
 ## ✨ Features
 
 ### 🎨 AI-Powered Image Generation
+
 - **OpenAI DALL-E 3 Integration**: High-quality, persona-specific workspace designs
 - **Real-time Generation**: Instant AI image creation with fallback support
 - **Smart Prompts**: Context-aware prompt engineering for optimal results
 - **Multiple Formats**: Support for various image sizes and quality levels
 
 ### 💾 Production-Ready Database
+
 - **SQLite with Drizzle ORM**: Robust data persistence and migrations
 - **Comprehensive Schema**: Users, sessions, participants, images, activity logs
 - **Real-time Synchronization**: Live updates across all connected clients
 - **Data Integrity**: Foreign key constraints and proper indexing
 
 ### 🔄 Real-Time Collaboration
+
 - **Server-Sent Events**: Instant updates without polling
 - **Live Gallery**: Real-time display of generated images
 - **Connection Management**: Automatic reconnection and cleanup
 - **Broadcast System**: Efficient multi-client communication
 
 ### 🔐 Authentication & Security
+
 - **Secure Sessions**: JWT-based authentication with Argon2 password hashing
 - **Role-Based Access**: Admin, Presenter, Participant permissions
 - **Environment Security**: Proper environment variable management
 - **Input Validation**: Comprehensive sanitization and validation
 
 ### 🎯 User Experience
+
 - **QR Code Access**: Instant session joining via mobile devices
 - **Responsive Design**: Optimized for desktop and mobile
 - **Toast Notifications**: Real-time user feedback
@@ -41,6 +46,7 @@ An interactive seminar experience platform that combines real-time collaboration
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or bun
 - OpenAI API key
@@ -48,29 +54,34 @@ An interactive seminar experience platform that combines real-time collaboration
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-org/z-interact.git
    cd z-interact
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment setup**
+
    ```bash
    cp .env.example .env
    # Edit .env with your OpenAI API key
    ```
 
 4. **Database setup**
+
    ```bash
    npm run db:generate
    npm run db:push
    ```
 
 5. **Development server**
+
    ```bash
    npm run dev
    ```
@@ -83,6 +94,7 @@ An interactive seminar experience platform that combines real-time collaboration
 ## 📋 Usage
 
 ### For Presenters
+
 1. **Access the QR Codes page** at `/` to share access links
 2. **View the Gallery page** at `/gallery` to monitor real-time submissions
 3. **Scan QR codes** or **copy links** to share with participants
@@ -90,6 +102,7 @@ An interactive seminar experience platform that combines real-time collaboration
 5. **Manage sessions** and view analytics
 
 ### For Participants
+
 1. **Scan QR code** or **click link** for your persona from the QR Codes page
 2. **Fill out the workspace design form** with your preferences
 3. **Generate AI image** using OpenAI DALL-E 3
@@ -98,6 +111,7 @@ An interactive seminar experience platform that combines real-time collaboration
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Frontend**: Svelte 5, SvelteKit 2, Tailwind CSS
 - **Backend**: SvelteKit API routes, Node.js
 - **Database**: SQLite with Drizzle ORM
@@ -106,6 +120,7 @@ An interactive seminar experience platform that combines real-time collaboration
 - **UI Components**: Bits UI, Flowbite
 
 ### Project Structure
+
 ```
 src/
 ├── lib/
@@ -129,6 +144,7 @@ src/
 ## 🔧 Configuration
 
 ### Environment Variables
+
 ```bash
 # Database
 DATABASE_URL=file:./local.db
@@ -141,25 +157,27 @@ SESSION_SECRET=your-session-secret-here
 ```
 
 ### Build Configuration
+
 ```javascript
 // svelte.config.js
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default {
-  preprocess: [vitePreprocess()],
-  kit: {
-    adapter: adapter(),
-    alias: {
-      '$lib': 'src/lib'
-    }
-  }
+	preprocess: [vitePreprocess()],
+	kit: {
+		adapter: adapter(),
+		alias: {
+			$lib: 'src/lib'
+		}
+	}
 };
 ```
 
 ## 🧪 Testing
 
 ### Run Tests
+
 ```bash
 # Unit tests
 npm run test:unit
@@ -175,6 +193,7 @@ npm run test
 ```
 
 ### Test Coverage
+
 - ✅ **Unit Tests**: Core functionality (80%+ coverage)
 - ✅ **Integration Tests**: Database operations and API endpoints
 - ✅ **E2E Tests**: Complete user workflows
@@ -183,6 +202,7 @@ npm run test
 ## 📊 API Documentation
 
 ### Image Generation
+
 ```http
 POST /api/generate-image
 Content-Type: application/json
@@ -196,12 +216,14 @@ Content-Type: application/json
 ```
 
 ### Real-Time Updates
+
 ```http
 GET /api/sse
 # Server-Sent Events stream
 ```
 
 ### Image Storage
+
 ```http
 GET /api/images
 POST /api/images
@@ -211,12 +233,14 @@ DELETE /api/images
 ## 🚀 Deployment
 
 ### Production Build
+
 ```bash
 npm run build
 npm run preview
 ```
 
 ### Docker Deployment
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -229,6 +253,7 @@ CMD ["npm", "start"]
 ```
 
 ### Environment Setup
+
 ```bash
 # Production environment
 NODE_ENV=production
@@ -240,12 +265,14 @@ SESSION_SECRET=your-production-secret
 ## 🔒 Security
 
 ### Authentication
+
 - **Password Hashing**: Argon2 with salt
 - **Session Security**: HTTP-only cookies, CSRF protection
 - **Rate Limiting**: API endpoint protection
 - **Input Validation**: Comprehensive sanitization
 
 ### Data Protection
+
 - **Encryption**: Sensitive data encrypted at rest
 - **Access Control**: Role-based permissions
 - **Audit Logging**: All user actions tracked
@@ -254,6 +281,7 @@ SESSION_SECRET=your-production-secret
 ## 📈 Performance
 
 ### Benchmarks
+
 - **Page Load**: < 2 seconds
 - **Image Generation**: < 15 seconds (OpenAI DALL-E 3)
 - **Database Queries**: < 100ms average
@@ -261,6 +289,7 @@ SESSION_SECRET=your-production-secret
 - **Concurrent Users**: Supports 100+ simultaneous users
 
 ### Optimizations
+
 - **Code Splitting**: Route-based lazy loading
 - **Image Optimization**: WebP format support
 - **Caching**: Service worker for offline support
@@ -269,6 +298,7 @@ SESSION_SECRET=your-production-secret
 ## 🤝 Contributing
 
 ### Development Setup
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -276,6 +306,7 @@ SESSION_SECRET=your-production-secret
 5. Submit a pull request
 
 ### Code Standards
+
 - **TypeScript**: Strict type checking enabled
 - **ESLint**: Code quality enforcement
 - **Prettier**: Consistent code formatting
@@ -305,4 +336,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: September 2024*
+_Last updated: September 2024_

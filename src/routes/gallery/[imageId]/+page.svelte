@@ -78,9 +78,7 @@
 				const now = new Date();
 				return now > expiryTime;
 			}
-		} catch (error) {
-			console.error('Error parsing image URL:', error);
-		}
+		} catch (error) {}
 
 		return false;
 	}
@@ -104,106 +102,178 @@
 </script>
 
 <svelte:head>
-	<title>{image ? `${image.personaTitle} - Z-Interact Gallery` : 'Image - Z-Interact Gallery'}</title>
-	<meta name="description" content={image ? `View ${image.personaTitle} workspace design generated with AI` : 'View AI-generated workspace design'} />
+	<title
+		>{image ? `${image.personaTitle} - Z-Interact Gallery` : 'Image - Z-Interact Gallery'}</title
+	>
+	<meta
+		name="description"
+		content={image
+			? `View ${image.personaTitle} workspace design generated with AI`
+			: 'View AI-generated workspace design'}
+	/>
 </svelte:head>
 
-<main class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+<main
+	class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800"
+>
+	<!-- Floating Back Button -->
+	<button
+		onclick={goBack}
+		class="glass-morphism smooth-transition fixed top-6 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full hover:scale-110 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+		aria-label="Back to Gallery"
+		title="Back to Gallery"
+	>
+		<svg
+			class="h-6 w-6 text-gray-700 dark:text-gray-200"
+			fill="none"
+			stroke="currentColor"
+			viewBox="0 0 24 24"
+		>
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+		</svg>
+	</button>
 
-
-	<div class="w-full p-4 md:p-8 relative">
-		<!-- Back Button - Absolute positioned in top-left -->
-		<div class="absolute top-4 left-4 z-10">
-			<Button variant="outline" onclick={goBack} class="flex items-center gap-2 bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white">
-				← Back to Gallery
-			</Button>
+	{#if isLoading}
+		<!-- Loading State -->
+		<div class="flex min-h-screen items-center justify-center p-6">
+			<div class="fade-in text-center">
+				<div
+					class="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"
+				></div>
+				<p class="text-lg text-slate-600 dark:text-gray-300">Loading workspace image...</p>
+			</div>
 		</div>
-
-		{#if isLoading}
-			<!-- Loading State -->
-			<div class="flex items-center justify-center min-h-[60vh]">
-				<div class="text-center">
-					<div class="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-					<p class="text-slate-600">Loading image...</p>
-				</div>
+	{:else if error}
+		<!-- Error State -->
+		<div class="flex min-h-screen items-center justify-center p-6">
+			<div class="fade-in text-center">
+				<div class="mb-6 text-6xl">❌</div>
+				<h2 class="mb-4 text-2xl font-semibold text-slate-900 dark:text-white">
+					Failed to Load Image
+				</h2>
+				<p class="mb-6 text-lg text-slate-600 dark:text-gray-300">{error}</p>
+				<button
+					onclick={goBack}
+					class="smooth-transition rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+				>
+					Back to Gallery
+				</button>
 			</div>
-		{:else if error}
-			<!-- Error State -->
-			<div class="flex items-center justify-center min-h-[60vh]">
-				<div class="text-center">
-					<div class="text-6xl mb-4">❌</div>
-					<h2 class="text-2xl font-semibold text-slate-900 mb-2">Error Loading Image</h2>
-					<p class="text-slate-600 mb-4">{error}</p>
-					<Button onclick={goBack}>Back to Gallery</Button>
-				</div>
-			</div>
-		{:else if image}
-			<!-- Image Header -->
-			<div class="w-full bg-white border-b">
-				<div class="max-w-6xl mx-auto px-6 py-4 pl-24">
-					<h1 class="text-3xl font-bold text-slate-900 mb-2">{image.personaTitle}</h1>
-					<div class="flex items-center gap-4 text-sm text-slate-600">
-						<span>Generated {new Date(image.createdAt).toLocaleString()}</span>
-						<span class="bg-slate-100 px-3 py-1 rounded-full">{image.provider}</span>
+		</div>
+	{:else if image}
+		<!-- Main Image Display -->
+		<div class="relative">
+			{#if image.error}
+				<!-- Image Error State -->
+				<div class="flex min-h-screen items-center justify-center p-6">
+					<div class="fade-in text-center">
+						<div class="mb-6 text-6xl">❌</div>
+						<h2 class="mb-4 text-xl font-semibold text-red-600 dark:text-red-400">
+							Image Failed to Load
+						</h2>
+						<p class="text-slate-600 dark:text-gray-300">{image.error}</p>
 					</div>
 				</div>
-			</div>
-
-			<!-- Image Content - TRUE Full Viewport Width -->
-			<div class="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
-				{#if image.error}
-					<!-- Error state -->
-					<div class="w-full flex items-center justify-center bg-red-50 text-red-600" style="height: 80vh;">
-						<div class="text-center">
-							<div class="text-9xl mb-6">❌</div>
-							<div class="text-3xl mb-3">{image.error}</div>
-						</div>
-					</div>
-				{:else}
-					<!-- Normal image - TRUE Full Viewport Width -->
+			{:else}
+				<!-- Hero Image Section -->
+				<div class="relative overflow-hidden">
 					<img
 						src={getImageUrl(image)}
-						alt="Workspace for {image.personaTitle}"
-						class="w-full h-auto max-h-[90vh] object-contain"
+						alt="AI-generated workspace for {image.personaTitle}"
+						class="image-load h-screen w-full object-cover"
+						style="object-position: center;"
+						onload={(e) => (e.target as HTMLImageElement)?.classList.add('image-loaded')}
 						onerror={handleImageError}
 					/>
-				{/if}
-			</div>
 
-			<!-- Image Details - Full Width -->
-			<div class="w-full bg-slate-50 border-t">
-				<div class="max-w-6xl mx-auto px-8 py-6">
-					<h2 class="text-2xl font-semibold text-slate-900 mb-6">Generation Details</h2>
-					<div class="space-y-6">
-						<div>
-							<h3 class="text-base font-medium text-slate-700 block mb-3">AI Prompt:</h3>
-							<div class="bg-white p-6 rounded-lg border text-slate-600 leading-relaxed text-lg shadow-sm">
-								{image.prompt}
-							</div>
-						</div>
-						<div class="grid md:grid-cols-3 gap-6">
-							<div>
-								<h3 class="text-base font-medium text-slate-700 block mb-3">Persona:</h3>
-								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
+					<!-- Image Overlay with Title -->
+					<div
+						class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
+					>
+						<div class="absolute right-0 bottom-0 left-0 p-8">
+							<div class="slide-up mx-auto max-w-4xl">
+								<h1 class="mb-4 text-4xl font-bold text-white md:text-5xl">
 									{image.personaTitle}
-								</div>
-							</div>
-							<div>
-								<h3 class="text-base font-medium text-slate-700 block mb-3">AI Provider:</h3>
-								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
-									{image.provider}
-								</div>
-							</div>
-							<div>
-								<h3 class="text-base font-medium text-slate-700 block mb-3">Generated:</h3>
-								<div class="bg-white p-4 rounded-lg border text-slate-600 text-lg shadow-sm">
-									{new Date(image.createdAt).toLocaleString()}
+								</h1>
+								<div class="flex flex-wrap items-center gap-4 text-white/90">
+									<div class="flex items-center gap-2">
+										<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+											/>
+										</svg>
+										<span class="text-lg"
+											>Generated {new Date(image.createdAt).toLocaleDateString()}</span
+										>
+									</div>
+									<div
+										class="rounded-full bg-white/20 px-4 py-2 text-lg font-medium backdrop-blur-sm"
+									>
+										🤖 {image.provider}
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+
+				<!-- Content Section -->
+				<div class="min-h-screen bg-white dark:bg-gray-900">
+					<div class="mx-auto max-w-4xl p-8">
+						<!-- AI Prompt Section -->
+						<section class="slide-up mb-12">
+							<h2
+								class="mb-6 flex items-center gap-3 text-3xl font-bold text-slate-900 dark:text-white"
+							>
+								💭 AI Prompt
+							</h2>
+							<div
+								class="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-gray-700 dark:bg-gray-800"
+							>
+								<p class="text-lg leading-relaxed text-slate-700 dark:text-gray-300">
+									{image.prompt}
+								</p>
+							</div>
+						</section>
+
+						<!-- Generation Details -->
+						<section class="slide-up mb-12">
+							<h2
+								class="mb-6 flex items-center gap-3 text-3xl font-bold text-slate-900 dark:text-white"
+							>
+								⚙️ Generation Details
+							</h2>
+							<div class="grid gap-6 md:grid-cols-2">
+								<div
+									class="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-gray-700 dark:bg-gray-800"
+								>
+									<h3
+										class="mb-3 flex items-center gap-2 text-xl font-semibold text-slate-800 dark:text-gray-200"
+									>
+										👤 Persona
+									</h3>
+									<p class="text-lg text-slate-600 dark:text-gray-300">{image.personaTitle}</p>
+								</div>
+								<div
+									class="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-gray-700 dark:bg-gray-800"
+								>
+									<h3
+										class="mb-3 flex items-center gap-2 text-xl font-semibold text-slate-800 dark:text-gray-200"
+									>
+										🕒 Created
+									</h3>
+									<p class="text-lg text-slate-600 dark:text-gray-300">
+										{new Date(image.createdAt).toLocaleString()}
+									</p>
+								</div>
+							</div>
+						</section>
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </main>

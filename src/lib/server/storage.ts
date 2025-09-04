@@ -1,4 +1,4 @@
-import type { LockedImage } from '$lib/personas';
+import type { LockedImage } from '$lib/config.svelte';
 
 // Cloudflare Workers compatible storage - using in-memory cache only
 // Images are persisted in the database, this is just for runtime caching
@@ -10,19 +10,16 @@ class ImageStorage {
 		if (this.initialized) return;
 		// No file system initialization needed in Cloudflare Workers
 		this.initialized = true;
-		console.log('📁 In-memory image storage initialized');
 	}
 
 	async save() {
 		// No file system operations in Cloudflare Workers
 		// Data persistence is handled by the database
-		console.log('💾 Image storage sync (database persistence)');
 	}
 
 	async getAll(): Promise<LockedImage[]> {
 		await this.init();
-		return Array.from(this.cache.values())
-			.sort((a, b) => a.personaId.localeCompare(b.personaId));
+		return Array.from(this.cache.values()).sort((a, b) => a.personaId.localeCompare(b.personaId));
 	}
 
 	async set(image: LockedImage): Promise<LockedImage> {
@@ -55,7 +52,7 @@ class ImageStorage {
 	// Load cache from database (called externally when needed)
 	loadFromDatabase(images: LockedImage[]) {
 		this.cache.clear();
-		images.forEach(img => this.cache.set(img.personaId, img));
+		images.forEach((img) => this.cache.set(img.personaId, img));
 	}
 }
 

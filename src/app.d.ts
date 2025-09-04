@@ -28,8 +28,7 @@ interface D1Response<T = unknown> {
 declare global {
 	namespace App {
 		interface Locals {
-			user: import('$lib/server/auth').SessionValidationResult['user'];
-			session: import('$lib/server/auth').SessionValidationResult['session'];
+			// No authentication required for this application
 		}
 		// interface Error {}
 		// interface PageData {}
@@ -39,6 +38,9 @@ declare global {
 				z_interact_db: D1Database;
 				OPENAI_API_KEY?: string;
 				SESSION_SECRET?: string;
+				ENABLE_R2_STORAGE?: string;
+				R2_IMAGES?: R2Bucket;
+				R2_PUBLIC_URL?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<any>): void;

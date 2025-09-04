@@ -1,4 +1,4 @@
-import type { LockedImage } from '$lib/config';
+import type { LockedImage } from '$lib/config.svelte';
 
 // Store with database persistence
 class WorkspaceStore {
@@ -36,14 +36,12 @@ class WorkspaceStore {
 				this.lockedImages = images.map((img: any) => ({
 					tableId: img.tableId,
 					personaId: img.personaId,
-					personaTitle: img.personaTitle,
 					imageUrl: img.imageUrl,
 					prompt: img.prompt,
 					lockedAt: new Date(img.createdAt).toISOString()
 				}));
 			}
 		} catch (error) {
-			console.error('Failed to load images:', error);
 			this.lockedImages = [];
 		}
 	}
@@ -53,29 +51,32 @@ class WorkspaceStore {
 			const response = await fetch('/api/images', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					...image,
-					provider: 'placeholder',
-					status: 'completed'
-				})
+				body: JSON.stringify(image)
 			});
 
 			if (!response.ok) throw new Error('Failed to lock image');
 
 			// Update local state
-			this.lockedImages = this.lockedImages.filter(img => img.personaId !== image.personaId);
+			this.lockedImages = this.lockedImages.filter((img) => img.personaId !== image.personaId);
 			this.lockedImages.push(image);
 			this.isGenerating[image.personaId] = false;
 
 			return image;
 		} catch (error) {
-			console.error('Failed to lock image:', error);
 			throw error;
 		}
 	}
 
 	getLockedImage(personaId: string) {
-		return this.lockedImages.find(img => img.personaId === personaId);
+		return this.lockedImages.find((img) => img.personaId === personaId);
+	}
+
+	getLockedImageByTable(tableId: string) {
+		return this.lockedImages.find((img) => img.tableId === tableId);
+	}
+
+	getLockedImageByPersonaAndTable(personaId: string, tableId: string) {
+		return this.lockedImages.find((img) => img.personaId === personaId && img.tableId === tableId);
 	}
 
 	async refreshImages() {
@@ -83,16 +84,20 @@ class WorkspaceStore {
 	}
 
 	// Generate image using API
-	async generateImage(personaId: string, prompt: string): Promise<{imageUrl: string, originalUrl: string}> {
+	async generateImage(
+		personaId: string,
+		prompt: string,
+		tableId?: string
+	): Promise<{ imageUrl: string }> {
 		this.setGenerating(personaId, true);
 
 		try {
-			const response = await fetch('/api/generate-image', {
+			const response = await fetch('/api/images', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ prompt, personaId })
+				body: JSON.stringify({ prompt, personaId, tableId })
 			});
 
 			if (!response.ok) {
@@ -101,13 +106,11 @@ class WorkspaceStore {
 
 			const data = await response.json();
 			this.setGenerating(personaId, false);
-			
-			// Return both URLs - data URL for display, original URL for database
-			return {
-				imageUrl: data.imageUrl, // data URL for immediate display
-				originalUrl: data.originalUrl || data.imageUrl // original URL for database storage
-			};
 
+			// Return image URL for both display and database storage
+			return {
+				imageUrl: data.imageUrl
+			};
 		} catch (error) {
 			this.setGenerating(personaId, false);
 			throw error;

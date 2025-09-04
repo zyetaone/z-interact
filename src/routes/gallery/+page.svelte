@@ -1,99 +1,136 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { config } from '$lib/config';
+	import { globalConfig } from '$lib/config.svelte';
 	import { Button } from '$lib/components/ui';
+	import QRCodeGenerator from '$lib/components/ui/qr-code-generator.svelte';
+	import { QRModal } from '$lib/components/ui';
+	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const images = $state(data.images || []);
 
-	const groupedByPersona = $derived(
-		Object.values(config.personas).map(persona => ({
-			...persona,
-			images: images.filter(img => img.personaId === persona.id)
+	// Flatten all images for grid layout
+	const allImages = $derived(
+		images.map((img) => ({
+			...img,
+			persona: globalConfig.personas[img.personaId] || { title: 'Unknown', id: img.personaId }
 		}))
 	);
 
 	function getTableDisplayName(tableId: string | null): string {
 		if (!tableId) return 'Unknown';
-		const table = config.tables.find(t => t.id === tableId);
+		const table = globalConfig.tables.find((t) => t.id === tableId);
 		return table?.displayName || 'Unknown Table';
+	}
+
+	function handleImageClick(imageId: string) {
+		goto(`/gallery/${imageId}`);
+	}
+
+	function getTableURL(tableId: string): string {
+		if (!browser) return '';
+		const baseUrl = window.location.origin;
+		return `${baseUrl}/table/${tableId}`;
+	}
+
+	// Modal state for QR display
+	let showQRModal = $state(false);
+	let selectedTableId = $state<string>('');
+	let selectedTableName = $state<string>('');
+	let selectedTableURL = $state<string>('');
+
+	function openQRModal(tableId: string) {
+		selectedTableId = tableId;
+		selectedTableName = getTableDisplayName(tableId);
+		selectedTableURL = getTableURL(tableId);
+		showQRModal = true;
 	}
 </script>
 
 <svelte:head>
-	<title>Z-Interact - Live Gallery</title>
-	<meta name="description" content="Live gallery of AI-generated workspace designs" />
+	<title>Z-Interact Gallery</title>
+	<meta name="description" content="Beautiful gallery of AI-generated workspace designs" />
 </svelte:head>
 
-<main class="min-h-screen bg-gradient-to-br from-slate-100 to-gray-200 p-4 md:p-8">
-	<div class="container mx-auto max-w-screen-2xl">
-		<!-- Header -->
-		<header class="text-center mb-10">
-			<h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-2">
-				Live Gallery
-			</h1>
-			<p class="text-slate-600 text-lg">
-				Real-time showcase of AI-generated workspace designs, grouped by persona.
-			</p>
-		</header>
+<main
+	class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pt-16 dark:from-gray-900 dark:to-gray-800"
+>
+	<!-- Gallery Grid -->
+	<div class="px-6 py-8 lg:px-8">
+		<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+			{#each Array(10) as _, index}
+				{@const tableId = String(index + 1)}
+				{@const existingImage = allImages.find((img) => img.tableId === tableId)}
 
-		{#if images.length === 0}
-			<div class="text-center py-16">
-				<div class="max-w-sm mx-auto">
-					<div class="text-6xl mb-4">🏢</div>
-					<h3 class="text-xl font-medium text-slate-600 mb-2">
-						Waiting for submissions...
-					</h3>
-					<p class="text-slate-500 mb-6">
-						AI-generated workspace images will appear here in real-time as participants complete their designs.
-					</p>
-					<Button onclick={() => goto('/')} variant="outline">
-						← Back to Admin Controls
-					</Button>
-				</div>
-			</div>
-		{:else}
-			<div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8">
-				{#each groupedByPersona as personaGroup}
-					{#if personaGroup.images.length > 0}
-						<section class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6">
-							<h2 class="text-2xl font-bold text-slate-800 mb-4 border-b pb-2">{personaGroup.title}</h2>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-								{#each personaGroup.images as image (image.id)}
-									<div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-										<div class="aspect-video bg-slate-100 relative">
-											<img
-												src={image.imageUrl}
-												alt={image.prompt}
-												class="w-full h-full object-cover"
-												loading="lazy"
-											/>
-											<div class="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-md text-xs font-bold">
-												{getTableDisplayName(image.tableId)}
-											</div>
-										</div>
-										<div class="p-4">
-											<p class="text-xs text-slate-500 mb-2">{new Date(image.createdAt).toLocaleString()}</p>
-											<p class="text-sm text-slate-700 line-clamp-3">{image.prompt}</p>
-										</div>
-									</div>
-								{/each}
+				{#if existingImage}
+					<!-- Filled slot with image -->
+					<button
+						class="relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-md transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+						onclick={() => handleImageClick(existingImage.id)}
+					>
+						<img
+							src={existingImage.imageUrl}
+							alt={existingImage.prompt}
+							class="h-full w-full object-cover"
+							loading="lazy"
+						/>
+
+						<!-- Persistent table badge -->
+						<div
+							class="absolute top-2 left-2 rounded-md bg-slate-900/80 px-2 py-1 text-xs font-bold text-white backdrop-blur-sm"
+						>
+							{getTableDisplayName(tableId)}
+						</div>
+					</button>
+				{:else}
+					<!-- Empty slot with full QR code -->
+					<button
+						class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+						onclick={() => openQRModal(tableId)}
+					>
+						<!-- Full-coverage QR code -->
+						<div class="absolute inset-0 flex items-center justify-center p-2">
+							<div class="qr-container h-full w-full">
+								<QRCodeGenerator url={getTableURL(tableId)} size={300} class="qr-responsive" />
 							</div>
-						</section>
-					{/if}
-				{/each}
-			</div>
-		{/if}
+						</div>
+
+						<!-- Subtle hover overlay -->
+						<div
+							class="absolute inset-0 flex items-center justify-center bg-blue-600/10 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100"
+						>
+							<div class="rounded-lg bg-white/90 px-3 py-1 text-xs font-medium text-slate-700">
+								Click to enlarge
+							</div>
+						</div>
+					</button>
+				{/if}
+			{/each}
+		</div>
 	</div>
 </main>
 
+<!-- QR Code Modal -->
+<QRModal bind:open={showQRModal} tableNumber={parseInt(selectedTableId)} url={selectedTableURL} />
+
 <style>
-	.line-clamp-3 {
-		display: -webkit-box;
-		-webkit-line-clamp: 3;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
+	.qr-container :global(.qr-code-container) {
+		display: block !important;
+		width: 100% !important;
+		height: 100% !important;
+	}
+
+	.qr-container :global(.qr-responsive) {
+		width: 100% !important;
+		height: 100% !important;
+		object-fit: contain !important;
+	}
+
+	.qr-container :global(.qr-responsive img) {
+		width: 100% !important;
+		height: 100% !important;
+		object-fit: contain !important;
 	}
 </style>

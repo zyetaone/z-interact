@@ -70,7 +70,11 @@ export class Environment {
 	}
 
 	get SESSION_SECRET(): string {
-		return getEnvValue('SESSION_SECRET', this.platform) || 'default-secret-change-in-production';
+		const secret = getEnvValue('SESSION_SECRET', this.platform);
+		if (!secret) {
+			throw new Error('SESSION_SECRET environment variable is required');
+		}
+		return secret;
 	}
 
 	// Cloudflare-specific variables

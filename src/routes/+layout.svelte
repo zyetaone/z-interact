@@ -12,6 +12,10 @@
 		return $page.url.pathname.includes('/presentation') || $page.url.pathname.includes('/table/');
 	}
 
+	function shouldShowNav() {
+		return $page.url.pathname === '/admin' || $page.url.pathname.startsWith('/gallery');
+	}
+
 	// Set up context for shared state management
 	// This provides a clean way to share state without global variables
 	setContext('app-context', {
@@ -21,7 +25,7 @@
 </script>
 
 <div class="app">
-	{#if !isPresentation()}
+	{#if shouldShowNav()}
 		<Navigation />
 	{/if}
 
@@ -31,12 +35,12 @@
 
 	{#if !isPresentation()}
 		<footer>
-			<p>
-				visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to learn about SvelteKit
-			</p>
+			<p>Powered BY ZyetaDX (c) 2025</p>
 		</footer>
 	{/if}
 </div>
+
+<Toast />
 
 <style>
 	.app {
@@ -73,11 +77,12 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		padding: 12px;
-	}
-
-	footer a {
-		font-weight: bold;
+		padding: 8px;
+		background: white;
+		border-top: 1px solid #e5e7eb;
+		color: #64748b;
+		font-size: 0.75rem;
+		margin-top: auto;
 	}
 
 	@media (min-width: 480px) {
@@ -86,5 +91,3 @@
 		}
 	}
 </style>
-
-<Toast />

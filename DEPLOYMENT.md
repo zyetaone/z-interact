@@ -16,7 +16,7 @@ This guide covers deploying Z-Interact to Cloudflare Pages with D1 database and 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key_here
 
-# Database Configuration  
+# Database Configuration
 DATABASE_URL=file:./local.db  # Only for local development
 
 # R2 Storage Configuration
@@ -35,12 +35,12 @@ Set these in your Cloudflare Pages dashboard:
 1. Go to Pages → Your Project → Settings → Environment variables
 2. Add the following variables:
 
-| Variable | Value | Notes |
-|----------|--------|--------|
-| `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
-| `ENABLE_R2_STORAGE` | `true` | Enable R2 image storage |
-| `R2_PUBLIC_URL` | `https://images.yourdomain.com` | Your R2 public URL |
-| `MIGRATION_BATCH_SIZE` | `10` | Images per migration batch |
+| Variable               | Value                           | Notes                      |
+| ---------------------- | ------------------------------- | -------------------------- |
+| `OPENAI_API_KEY`       | `sk-...`                        | Your OpenAI API key        |
+| `ENABLE_R2_STORAGE`    | `true`                          | Enable R2 image storage    |
+| `R2_PUBLIC_URL`        | `https://images.yourdomain.com` | Your R2 public URL         |
+| `MIGRATION_BATCH_SIZE` | `10`                            | Images per migration batch |
 
 ## Database Setup (D1)
 
@@ -232,7 +232,7 @@ wrangler r2 bucket get z-interact-images
 
 ## Scaling Considerations
 
-1. **D1 Limits**: 
+1. **D1 Limits**:
    - 100,000 rows per day (free tier)
    - 5 million rows total (free tier)
 
@@ -248,6 +248,7 @@ wrangler r2 bucket get z-interact-images
 ## Support
 
 For issues specific to:
+
 - **SvelteKit**: [SvelteKit Documentation](https://kit.svelte.dev/)
 - **Cloudflare Pages**: [Cloudflare Pages Docs](https://developers.cloudflare.com/pages/)
 - **D1 Database**: [D1 Documentation](https://developers.cloudflare.com/d1/)

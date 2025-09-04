@@ -36,6 +36,20 @@
       "when": 1756928062501,
       "tag": "0004_complex_aqueduct",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1756959883850,
+      "tag": "0005_furry_surge",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1756961985340,
+      "tag": "0006_watery_prowler",
+      "breakpoints": true
     }
   ]
 }
