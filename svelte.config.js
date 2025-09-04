@@ -18,10 +18,12 @@ const config = {
 					'<prerendered>', // Exclude prerendered pages from Functions
 					'/favicon.svg',
 					'/robots.txt',
-					'/images/*'
+					'/images/*',
+					'/_app/*' // Exclude app assets from Functions
 				]
-			}
-			// Removed SPA fallback to allow proper API route handling
+			},
+			// Use 200.html fallback for client-side routing while preserving API routes
+			fallback: '200.html'
 		})
 	},
 	extensions: ['.svelte', '.svx']
