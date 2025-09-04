@@ -12,7 +12,15 @@ const config = {
 			// Point to our wrangler.toml for D1 bindings and other config
 			config: 'wrangler.toml',
 			// Configure routing for Pages Functions
-		
+			routes: {
+				include: ['/*'],
+				exclude: [
+					'/favicon.svg',
+					'/robots.txt', 
+					'/images/*',
+					'/_app/*'
+				]
+			},
 			// Use 200.html fallback for client-side routing while preserving API routes
 			fallback: '200.html'
 		})

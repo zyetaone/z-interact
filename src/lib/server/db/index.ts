@@ -15,7 +15,7 @@ type Platform = { env?: Record<string, any> } | undefined;
  */
 export function getDb(platform?: Platform): DatabaseConnection {
 	// Force local development to use libSQL (ignore D1 binding in dev mode)
-	const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+	const isDevelopment = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
 
 	// Only use D1 in production when platform binding exists
 	if (!isDevelopment && platform?.env?.z_interact_db) {

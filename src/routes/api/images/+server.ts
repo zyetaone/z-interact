@@ -15,7 +15,11 @@ export async function GET(event: RequestEvent) {
 		const allImages = await database.select().from(images).orderBy(desc(images.createdAt));
 		return json(allImages, { headers: corsHeaders });
 	} catch (error) {
-		return json({ error: 'Failed to fetch images' }, { status: 500, headers: corsHeaders });
+		console.error('Failed to fetch images:', error);
+		return json({ 
+			error: 'Failed to fetch images', 
+			debug: error instanceof Error ? error.message : String(error) 
+		}, { status: 500, headers: corsHeaders });
 	}
 }
 
@@ -70,7 +74,11 @@ export async function POST(event: RequestEvent) {
 				});
 				imageUrl = result.imageUrl;
 			} catch (error) {
-				return json({ error: 'Failed to generate image' }, { status: 500 });
+				console.error('Failed to generate image:', error);
+				return json({ 
+					error: 'Failed to generate image',
+					debug: error instanceof Error ? error.message : String(error)
+				}, { status: 500, headers: corsHeaders });
 			}
 		}
 
@@ -110,7 +118,13 @@ export async function POST(event: RequestEvent) {
 			return json({ image: newImage }, { headers: corsHeaders });
 		}
 	} catch (error) {
-		return json({ error: 'Failed to process image request' }, { status: 500, headers: corsHeaders });
+		console.error('Failed to process image request:', error);
+		return json({ 
+			error: 'Failed to process image request',
+			debug: error instanceof Error ? error.message : String(error),
+			platform: !!event.platform,
+			hasDb: !!(event.platform?.env?.z_interact_db)
+		}, { status: 500, headers: corsHeaders });
 	}
 }
 
@@ -121,7 +135,11 @@ export async function DELETE(event: RequestEvent) {
 		await database.delete(images);
 		return json({ message: 'All images cleared' }, { headers: corsHeaders });
 	} catch (error) {
-		return json({ error: 'Failed to clear images' }, { status: 500, headers: corsHeaders });
+		console.error('Failed to clear images:', error);
+		return json({ 
+			error: 'Failed to clear images',
+			debug: error instanceof Error ? error.message : String(error)
+		}, { status: 500, headers: corsHeaders });
 	}
 }
 
