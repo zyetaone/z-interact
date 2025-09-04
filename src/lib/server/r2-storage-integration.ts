@@ -4,7 +4,7 @@
 import { R2Storage } from './r2-storage';
 import type { R2StorageConfig, ImageUploadOptions, ImageMetadata } from './r2-storage';
 import { imageGenerator } from './ai/image-generator';
-import { db } from './db';
+import { getDb } from './db';
 import { images } from './db/schema';
 import { eq, isNull } from 'drizzle-orm';
 
@@ -72,7 +72,7 @@ export class R2StorageIntegration {
 			);
 
 			// Store metadata in database
-			const imageRecord = await db
+			const imageRecord = await getDb()
 				.insert(images)
 				.values({
 					sessionId,
@@ -106,21 +106,23 @@ export class R2StorageIntegration {
 			console.error('❌ Failed to generate and store image:', error);
 
 			// Store failed status in database
-			await db.insert(images).values({
-				sessionId,
-				participantId,
-				tableId: personaId,
-				personaId,
-				personaTitle: this.getPersonaTitle(personaId),
-				imageUrl: null,
-				imageData: null,
-				imageMimeType: null,
-				prompt,
-				provider: 'placeholder',
-				status: 'failed',
-				createdAt: new Date(),
-				updatedAt: new Date()
-			});
+			await getDb()
+				.insert(images)
+				.values({
+					sessionId,
+					participantId,
+					tableId: personaId,
+					personaId,
+					personaTitle: this.getPersonaTitle(personaId),
+					imageUrl: null,
+					imageData: null,
+					imageMimeType: null,
+					prompt,
+					provider: 'placeholder',
+					status: 'failed',
+					createdAt: new Date(),
+					updatedAt: new Date()
+				});
 
 			throw error;
 		}
@@ -131,7 +133,11 @@ export class R2StorageIntegration {
 	 */
 	async getImageById(imageId: string) {
 		try {
-			const imageRecord = await db.select().from(images).where(eq(images.id, imageId)).limit(1);
+			const imageRecord = await getDb()
+				.select()
+				.from(images)
+				.where(eq(images.id, imageId))
+				.limit(1);
 
 			if (!imageRecord.length) {
 				throw new Error(`Image not found: ${imageId}`);
@@ -176,7 +182,11 @@ export class R2StorageIntegration {
 	 */
 	async deleteImage(imageId: string) {
 		try {
-			const imageRecord = await db.select().from(images).where(eq(images.id, imageId)).limit(1);
+			const imageRecord = await getDb()
+				.select()
+				.from(images)
+				.where(eq(images.id, imageId))
+				.limit(1);
 
 			if (!imageRecord.length) {
 				throw new Error(`Image not found: ${imageId}`);
@@ -196,7 +206,7 @@ export class R2StorageIntegration {
 			}
 
 			// Delete from database
-			await db.delete(images).where(eq(images.id, imageId));
+			await getDb().delete(images).where(eq(images.id, imageId));
 
 			console.log(`🗑️ Image deleted: ${imageId}`);
 			return true;
@@ -211,7 +221,11 @@ export class R2StorageIntegration {
 	 */
 	async migrateImageToR2(imageId: string) {
 		try {
-			const imageRecord = await db.select().from(images).where(eq(images.id, imageId)).limit(1);
+			const imageRecord = await getDb()
+				.select()
+				.from(images)
+				.where(eq(images.id, imageId))
+				.limit(1);
 
 			if (!imageRecord.length) {
 				throw new Error(`Image not found: ${imageId}`);
@@ -259,7 +273,7 @@ export class R2StorageIntegration {
 			const uploadResult = await this.r2Storage.uploadImage(image.imageData, r2Key, uploadOptions);
 
 			// Update database record
-			await db
+			await getDb()
 				.update(images)
 				.set({
 					imageUrl: uploadResult.publicUrl,
@@ -285,8 +299,8 @@ export class R2StorageIntegration {
 	 */
 	async getStorageStats() {
 		try {
-			const totalImages = await db.$count(images);
-			const r2Images = await db.$count(images, isNull(images.imageData));
+			const totalImages = await getDb().$count(images);
+			const r2Images = await getDb().$count(images, isNull(images.imageData));
 			const base64Images = totalImages - r2Images;
 
 			const listResult = await this.r2Storage.listImages({ prefix: 'images/' });

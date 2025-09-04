@@ -1,4 +1,4 @@
-import { OPENAI_API_KEY } from '../env';
+import { env } from '../env';
 
 export interface ImageGenerationOptions {
 	prompt: string;
@@ -29,16 +29,18 @@ export class ImageGenerator {
 		}
 	}
 
-	private async generateWithOpenAI(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
-		if (!OPENAI_API_KEY) {
+	private async generateWithOpenAI(
+		options: ImageGenerationOptions
+	): Promise<ImageGenerationResult> {
+		if (!env.OPENAI_API_KEY) {
 			throw new Error('OpenAI API key not configured');
 		}
 
 		const response = await fetch('https://api.openai.com/v1/images/generations', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${OPENAI_API_KEY}`,
-				'Content-Type': 'application/json',
+				Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
 				prompt: options.prompt,
@@ -46,8 +48,8 @@ export class ImageGenerator {
 				size: options.size || '1024x1024',
 				quality: options.quality || 'standard',
 				style: options.style || 'vivid',
-				n: 1,
-			}),
+				n: 1
+			})
 		});
 
 		if (!response.ok) {

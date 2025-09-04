@@ -2,113 +2,59 @@ import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
 import { drizzle as drizzleLibSQL } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
-import { env } from '$env/dynamic/private';
+import { env } from '../env';
 
-// Create database connection - only for development/local
-let localDb: any = null;
+// Database connection types
+type DatabaseConnection = ReturnType<typeof drizzleD1 | typeof drizzleLibSQL>;
+type Platform = { env?: Record<string, any> } | undefined;
 
-function createLocalDb() {
-	if (!localDb) {
-		// In Cloudflare Workers environment (wrangler dev), use a libsql://localhost URL
-		// This is a workaround since libSQL client doesn't support "file:" URLs in Workers
-		const databaseUrl = env.DATABASE_URL || 'libsql://localhost:8080';
-		
-		try {
-			const client = createClient({ url: databaseUrl });
-			localDb = drizzleLibSQL(client, { schema });
-		} catch (error) {
-			console.error('❌ Failed to create libSQL client with URL:', databaseUrl, error);
-			// If libSQL connection fails, this means we're in an unsupported environment
-			// Return null to indicate no database is available
-			return null;
-		}
+// Singleton database instance
+let dbInstance: DatabaseConnection | null = null;
+
+/**
+ * Creates a database connection based on the environment
+ * - Production: Uses Cloudflare D1 binding
+ * - Development: Uses local SQLite file via libSQL
+ */
+function createDatabaseConnection(platform?: Platform): DatabaseConnection {
+	// Check for Cloudflare D1 binding (production)
+	if (platform?.env?.z_interact_db) {
+		console.log('🔗 Using Cloudflare D1 database connection');
+		return drizzleD1(platform.env.z_interact_db, { schema });
 	}
-	return localDb;
+
+	// Development fallback using libSQL
+	try {
+		console.log('🔗 Using local SQLite database connection');
+		const client = createClient({ url: env.DATABASE_URL });
+		return drizzleLibSQL(client, { schema });
+	} catch (error) {
+		console.error('❌ Failed to create database connection:', error);
+		throw new Error(
+			`Database connection failed. Ensure DATABASE_URL is set correctly. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+		);
+	}
 }
 
-// Main database function - always use this
-export function getDb(platform?: any) {
-	// Debug logging for production issues
-	console.log('🔍 getDb called with platform:', {
-		hasPlatform: !!platform,
-		platformType: typeof platform,
-		platformKeys: platform ? Object.keys(platform) : [],
-		hasEnv: !!platform?.env,
-		envType: typeof platform?.env,
-		envKeys: platform?.env ? Object.keys(platform.env) : [],
-		hasD1Binding: !!platform?.env?.z_interact_db,
-		d1BindingType: typeof platform?.env?.z_interact_db,
-		globalKeys: typeof globalThis !== 'undefined' ? Object.keys(globalThis).filter(k => k.includes('env') || k.includes('d1') || k.includes('DB')) : [],
-		processEnvHasDBURL: typeof process !== 'undefined' && !!process?.env?.DATABASE_URL
-	});
-
-	// In Cloudflare Workers/Pages, use D1 binding with correct adapter
-	if (platform?.env?.z_interact_db) {
-		console.log('✅ Using D1 database connection with binding');
+/**
+ * Gets the database connection instance
+ * Creates the connection on first call and reuses it for subsequent calls
+ */
+export function getDb(platform?: Platform): DatabaseConnection {
+	if (!dbInstance) {
 		try {
-			const db = drizzleD1(platform.env.z_interact_db, { schema });
-			console.log('✅ D1 Drizzle instance created successfully');
-			return db;
+			dbInstance = createDatabaseConnection(platform);
+			console.log('✅ Database connection established successfully');
 		} catch (error) {
-			console.error('❌ Failed to create D1 Drizzle instance:', error);
+			console.error('❌ Database connection failed:', error);
 			throw error;
 		}
 	}
-	
-	// Check if we're in a Cloudflare environment but binding failed
-	// This handles both production and wrangler dev environments
-	if (typeof globalThis?.process === 'undefined' && typeof globalThis?.navigator !== 'undefined') {
-		console.error('❌ Running in Cloudflare environment but D1 binding not found');
-		console.error('❌ Platform object structure:', {
-			platform: !!platform,
-			env: !!platform?.env,
-			envKeys: platform?.env ? Object.keys(platform.env) : 'no env',
-			d1Binding: !!platform?.env?.z_interact_db
-		});
-		throw new Error('D1 database binding not available. Please check your wrangler.toml configuration.');
-	}
-	
-	console.log('⚠️  Using local database connection (fallback)');
-	console.log('⚠️  This will likely fail in production environment');
-	// For development/local, use libsql client
-	return createLocalDb();
-}
-
-// Legacy export for backwards compatibility (development only)
-// NOTE: This should not be used in production - use getDb(platform) instead
-// Lazily create the connection only when accessed to avoid issues in Cloudflare Workers
-let _legacyDb: any = null;
-export const db = new Proxy({} as any, {
-	get(target, prop) {
-		if (!_legacyDb) {
-			console.log('⚠️  Legacy db export being accessed - this may cause issues in Cloudflare environment');
-			try {
-				_legacyDb = createLocalDb();
-			} catch (error) {
-				console.error('❌ Failed to create legacy db connection:', error);
-				_legacyDb = null;
-			}
-		}
-		return _legacyDb?.[prop];
-	}
-});
-
-// Cloudflare D1 Database support (legacy function name)
-export function createDrizzle(platform: any) {
-	return getDb(platform);
-}
-
-// Helper function to initialize database
-export async function initDatabase() {
-	try {
-		// Test connection by running a simple query
-		await db.select().from(schema.users).limit(1);
-		console.log('✅ Database connection established');
-	} catch (error) {
-		console.error('❌ Database connection failed:', error);
-		throw error;
-	}
+	return dbInstance;
 }
 
 // Export schema for convenience
 export { schema };
+
+// Export types for use in other modules
+export type { DatabaseConnection, Platform };

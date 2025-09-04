@@ -109,9 +109,12 @@
 			<h2 class="text-2xl md:text-3xl font-semibold text-slate-800 mb-6 text-center">
 				Session Management
 			</h2>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<Button onclick={() => goto('/gallery')} variant="default" class="w-full">
 					🖼️ View Live Gallery
+				</Button>
+				<Button onclick={() => goto('/admin/storage')} variant="outline" class="w-full">
+					📊 Storage Dashboard
 				</Button>
 				<Button onclick={clearAllImages} variant="destructive" class="w-full">
 					🗑️ Clear All Images

@@ -1,107 +1,198 @@
-import { json } from '@sveltejs/kit';
 import { R2Storage } from '$lib/server/r2-storage';
 import { ImageMigrationService } from '$lib/server/migration-utils';
+import { withApiHandler, Validation, ApiResponse, HTTP_STATUS } from '$lib/server/api-utils';
+import type { RequestEvent } from '@sveltejs/kit';
 
-export async function POST({ request, platform }) {
-	try {
-		const { action, batchSize = 10, dryRun = false } = await request.json();
+export async function POST(event: RequestEvent) {
+	return withApiHandler(
+		event,
+		async () => {
+			const { request, platform } = event;
+			const body = await request.json();
+			const {
+				action,
+				batchSize = 10,
+				dryRun = false,
+				concurrency = 3,
+				imageIds,
+				checkIntegrity = false,
+				sampleSize,
+				deleteFromR2 = true
+			} = body;
 
-		if (!platform?.env?.R2_IMAGES) {
-			return json({ error: 'R2 bucket not configured' }, { status: 500 });
-		}
+			Validation.required(action, 'action');
 
-		const r2Storage = new R2Storage({
-			bucket: platform.env.R2_IMAGES,
-			publicUrl: platform.env.R2_PUBLIC_URL
-		});
+			if (!(platform as any)?.env?.R2_IMAGES) {
+				throw new Error('R2 bucket not configured');
+			}
 
-		const migrationService = new ImageMigrationService({
-			r2Storage,
-			batchSize,
-			dryRun
-		});
+			const r2Storage = new R2Storage({
+				bucket: (platform as any).env.R2_IMAGES,
+				publicUrl: (platform as any).env.R2_PUBLIC_URL
+			});
 
-		let result;
+			const migrationService = new ImageMigrationService({
+				r2Storage,
+				batchSize,
+				dryRun,
+				concurrency,
+				progressCallback: (progress) => {
+					// In a real implementation, you might want to broadcast progress via SSE
+					console.log(
+						`📊 Progress: ${progress.processed}/${progress.total} (${Math.round((progress.processed / progress.total) * 100)}%)`
+					);
+				}
+			});
 
-		switch (action) {
-			case 'migrate':
-				console.log('🚀 Starting image migration...');
-				result = await migrationService.migrateAllImages();
-				break;
+			let result;
 
-			case 'validate':
-				console.log('🔍 Validating migration...');
-				result = await migrationService.validateMigration();
-				break;
+			switch (action) {
+				case 'migrate':
+					console.log('🚀 Starting enhanced image migration...');
+					result = await migrationService.migrateAllImages();
+					break;
 
-			case 'rollback':
-				console.log('🔄 Starting migration rollback...');
-				result = await migrationService.rollbackMigration();
-				break;
+				case 'validate':
+					console.log('🔍 Starting enhanced migration validation...');
+					result = await migrationService.validateMigration({
+						checkIntegrity,
+						sampleSize
+					});
+					break;
 
-			default:
-				return json(
-					{ error: 'Invalid action. Use: migrate, validate, or rollback' },
-					{ status: 400 }
-				);
-		}
+				case 'rollback':
+					console.log('🔄 Starting enhanced migration rollback...');
+					result = await migrationService.rollbackMigration({
+						imageIds,
+						batchSize,
+						dryRun,
+						deleteFromR2
+					});
+					break;
 
-		return json({
-			success: true,
-			action,
-			result,
-			timestamp: new Date().toISOString()
-		});
-	} catch (error) {
-		console.error('❌ Migration API error:', error);
-		return json(
-			{
-				error: 'Migration failed',
-				details: error instanceof Error ? error.message : 'Unknown error'
-			},
-			{ status: 500 }
-		);
-	}
+				case 'stats':
+					console.log('📊 Getting migration statistics...');
+					result = await migrationService.getMigrationStats();
+					break;
+
+				case 'backup':
+					console.log('💾 Creating migration backup...');
+					result = await migrationService.createMigrationBackup();
+					break;
+
+				case 'pause':
+					console.log('⏸️ Pausing migration...');
+					migrationService.pause();
+					result = { message: 'Migration paused' };
+					break;
+
+				case 'resume':
+					console.log('▶️ Resuming migration...');
+					migrationService.resume();
+					result = { message: 'Migration resumed' };
+					break;
+
+				case 'status':
+					console.log('📊 Getting migration status...');
+					result = {
+						isRunning: migrationService.isMigrationRunning(),
+						progress: migrationService.getProgress()
+					};
+					break;
+
+				default:
+					throw new Error(
+						`Invalid action: ${action}. Use: migrate, validate, rollback, stats, backup, pause, resume, or status`
+					);
+			}
+
+			return {
+				action,
+				result,
+				dryRun
+			};
+		},
+		'migrate-images'
+	);
 }
 
-// GET endpoint to check migration status
-export async function GET({ platform }) {
-	try {
-		if (!platform?.env?.R2_IMAGES) {
-			return json({
-				r2Configured: false,
-				enableR2Storage: platform?.env?.ENABLE_R2_STORAGE === 'true'
+// GET endpoint to check migration status and get comprehensive information
+export async function GET(event: RequestEvent) {
+	return withApiHandler(
+		event,
+		async () => {
+			const { platform } = event;
+
+			if (!(platform as any)?.env?.R2_IMAGES) {
+				return {
+					r2Configured: false,
+					enableR2Storage: (platform as any)?.env?.ENABLE_R2_STORAGE === 'true',
+					migrationReady: false,
+					message: 'R2 bucket not configured'
+				};
+			}
+
+			const r2Storage = new R2Storage({
+				bucket: (platform as any).env.R2_IMAGES,
+				publicUrl: (platform as any).env.R2_PUBLIC_URL
 			});
-		}
 
-		const r2Storage = new R2Storage({
-			bucket: platform.env.R2_IMAGES,
-			publicUrl: platform.env.R2_PUBLIC_URL
-		});
+			// Check R2 connectivity
+			let r2Status = 'unknown';
+			let r2ObjectsCount = 0;
+			try {
+				const listResult = await r2Storage.listImages({ limit: 1000 });
+				r2Status = 'connected';
+				r2ObjectsCount = listResult.objects?.length || 0;
+			} catch (error) {
+				r2Status = 'error';
+			}
 
-		// Quick check of R2 connectivity
-		let r2Status = 'unknown';
-		try {
-			await r2Storage.listImages({ limit: 1 });
-			r2Status = 'connected';
-		} catch (error) {
-			r2Status = 'error';
-		}
+			// Get migration service for stats
+			const migrationService = new ImageMigrationService({
+				r2Storage,
+				batchSize: parseInt((platform as any).env.MIGRATION_BATCH_SIZE || '10')
+			});
 
-		return json({
-			r2Configured: true,
-			r2Status,
-			enableR2Storage: platform.env.ENABLE_R2_STORAGE === 'true',
-			publicUrl: platform.env.R2_PUBLIC_URL,
-			batchSize: parseInt(platform.env.MIGRATION_BATCH_SIZE || '10')
-		});
-	} catch (error) {
-		return json(
-			{
-				error: 'Status check failed',
-				details: error instanceof Error ? error.message : 'Unknown error'
-			},
-			{ status: 500 }
-		);
-	}
+			let migrationStats;
+			try {
+				migrationStats = await migrationService.getMigrationStats();
+			} catch (error) {
+				migrationStats = null;
+			}
+
+			return {
+				r2Configured: true,
+				r2Status,
+				r2ObjectsCount,
+				enableR2Storage: (platform as any).env.ENABLE_R2_STORAGE === 'true',
+				publicUrl: (platform as any).env.R2_PUBLIC_URL,
+				batchSize: parseInt((platform as any).env.MIGRATION_BATCH_SIZE || '10'),
+				concurrency: 3, // Default concurrency
+				migrationReady: r2Status === 'connected',
+				migrationStats,
+				availableActions: [
+					'migrate',
+					'validate',
+					'rollback',
+					'stats',
+					'backup',
+					'pause',
+					'resume',
+					'status'
+				],
+				apiVersion: '2.0',
+				features: [
+					'progress_tracking',
+					'concurrency_control',
+					'integrity_validation',
+					'partial_rollback',
+					'dry_run_mode',
+					'backup_creation',
+					'pause_resume'
+				]
+			};
+		},
+		'get-migration-status'
+	);
 }
