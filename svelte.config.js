@@ -20,9 +20,8 @@ const config = {
 					'/robots.txt',
 					'/images/*'
 				]
-			},
-			// Use SPA fallback for better client-side routing
-			fallback: 'spa'
+			}
+			// Removed SPA fallback to allow proper API route handling
 		})
 	},
 	extensions: ['.svelte', '.svx']
