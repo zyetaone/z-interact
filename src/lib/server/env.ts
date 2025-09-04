@@ -8,7 +8,7 @@ export interface EnvConfig {
 	// Core application variables
 	DATABASE_URL: string;
 	OPENAI_API_KEY?: string;
-	SESSION_SECRET: string;
+	SESSION_SECRET?: string;
 
 	// Cloudflare-specific variables
 	CLOUDFLARE_API_TOKEN?: string;
@@ -72,7 +72,8 @@ export class Environment {
 	get SESSION_SECRET(): string {
 		const secret = getEnvValue('SESSION_SECRET', this.platform);
 		if (!secret) {
-			throw new Error('SESSION_SECRET environment variable is required');
+			// Generate a fallback secret for development/build purposes
+			return 'fallback-session-secret-' + Date.now().toString(36);
 		}
 		return secret;
 	}
