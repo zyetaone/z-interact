@@ -2,8 +2,10 @@ import { getDb } from '$lib/server/db';
 import { images } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
+import { getCorsHeaders, createOptionsResponse } from '$lib/server/cors';
 
 export async function GET(event: RequestEvent) {
+	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
 		const { params } = event;
 		const imageId = params.imageId;
@@ -11,7 +13,7 @@ export async function GET(event: RequestEvent) {
 		if (!imageId) {
 			return new Response(JSON.stringify({ error: 'Image ID is required' }), {
 				status: 400,
-				headers: { 'Content-Type': 'application/json' }
+				headers: { 'Content-Type': 'application/json', ...corsHeaders }
 			});
 		}
 
@@ -43,7 +45,8 @@ export async function GET(event: RequestEvent) {
 				'X-Image-Storage': 'r2',
 				'X-Image-ID': imageRecord.id,
 				'X-Image-Persona': imageRecord.personaId,
-				'X-Image-Created': imageRecord.createdAt.toISOString()
+				'X-Image-Created': imageRecord.createdAt.toISOString(),
+				...corsHeaders
 			});
 
 			// Content type is determined from R2 metadata or defaults to image/jpeg
@@ -76,7 +79,8 @@ export async function GET(event: RequestEvent) {
 				'X-Image-Storage': 'external',
 				'X-Image-ID': imageRecord.id,
 				'X-Image-Persona': imageRecord.personaId,
-				'X-Image-Created': imageRecord.createdAt.toISOString()
+				'X-Image-Created': imageRecord.createdAt.toISOString(),
+				...corsHeaders
 			});
 
 			// Add prompt metadata (truncated and sanitized for header safety)
@@ -103,12 +107,17 @@ export async function GET(event: RequestEvent) {
 		// No image data available
 		return new Response(JSON.stringify({ error: 'No image data available' }), {
 			status: 404,
-			headers: { 'Content-Type': 'application/json' }
+			headers: { 'Content-Type': 'application/json', ...corsHeaders }
 		});
 	} catch (error) {
 		return new Response(JSON.stringify({ error: 'Failed to serve image' }), {
 			status: 500,
-			headers: { 'Content-Type': 'application/json' }
+			headers: { 'Content-Type': 'application/json', ...corsHeaders }
 		});
 	}
+}
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS(event: RequestEvent) {
+	return createOptionsResponse(event.request.headers.get('origin'));
 }

@@ -6,18 +6,21 @@ import { imageGenerator } from '$lib/server/ai/image-generator';
 import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
+import { getCorsHeaders, createOptionsResponse } from '$lib/server/cors';
 
 export async function GET(event: RequestEvent) {
+	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
 		const database = getDb(event.platform);
 		const allImages = await database.select().from(images).orderBy(desc(images.createdAt));
-		return json(allImages);
+		return json(allImages, { headers: corsHeaders });
 	} catch (error) {
-		return json({ error: 'Failed to fetch images' }, { status: 500 });
+		return json({ error: 'Failed to fetch images' }, { status: 500, headers: corsHeaders });
 	}
 }
 
 export async function POST(event: RequestEvent) {
+	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
 		const { request, platform } = event;
 		const body = await request.json();
@@ -101,22 +104,28 @@ export async function POST(event: RequestEvent) {
 				imageUrl: imageUrl as string,
 				personaId: body.personaId,
 				prompt: body.prompt
-			});
+			}, { headers: corsHeaders });
 		} else {
 			// Return format expected by lockImage calls
-			return json({ image: newImage });
+			return json({ image: newImage }, { headers: corsHeaders });
 		}
 	} catch (error) {
-		return json({ error: 'Failed to process image request' }, { status: 500 });
+		return json({ error: 'Failed to process image request' }, { status: 500, headers: corsHeaders });
 	}
 }
 
 export async function DELETE(event: RequestEvent) {
+	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
 		const database = getDb(event.platform);
 		await database.delete(images);
-		return json({ message: 'All images cleared' });
+		return json({ message: 'All images cleared' }, { headers: corsHeaders });
 	} catch (error) {
-		return json({ error: 'Failed to clear images' }, { status: 500 });
+		return json({ error: 'Failed to clear images' }, { status: 500, headers: corsHeaders });
 	}
+}
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS(event: RequestEvent) {
+	return createOptionsResponse(event.request.headers.get('origin'));
 }
