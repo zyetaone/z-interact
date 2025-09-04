@@ -95,7 +95,7 @@ export async function POST(event: RequestEvent) {
 			id: crypto.randomUUID(),
 			tableId: validatedBody.tableId || null,
 			personaId: validatedBody.personaId,
-			personaTitle: validatedBody.personaId, // Use personaId as title since persona_title is NOT NULL
+			personaTitle: validatedBody.personaId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()), // Convert persona ID to title format
 			sessionId: null,
 			participantId: null,
 			imageUrl: imageUrl as string,
