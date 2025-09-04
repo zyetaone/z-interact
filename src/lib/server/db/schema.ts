@@ -16,7 +16,7 @@ export const images = sqliteTable('images', {
 	status: text('status').default('generating').notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }),
-	r2Key: text('r2_key'),
+	// r2Key: text('r2_key'), // Temporarily commented - column doesn't exist in Cloudflare D1
 	migrationStatus: text('migration_status').default('pending'),
 	migratedAt: integer('migrated_at', { mode: 'timestamp' })
 });

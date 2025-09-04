@@ -104,7 +104,6 @@ export async function POST(event: RequestEvent) {
 			status: 'completed',
 			createdAt: new Date(),
 			updatedAt: new Date(),
-			// r2Key: null,  // Column doesn't exist in Cloudflare D1 database
 			migrationStatus: 'completed',
 			migratedAt: null
 		};
