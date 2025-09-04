@@ -254,10 +254,10 @@
 		</div>
 
 		<!-- Main Container with Two Panels -->
-		<div class="flex h-[calc(100vh-3.5rem)] flex-col lg:flex-row">
+		<div class="flex h-[calc(100vh-3.5rem)] flex-col overflow-auto lg:flex-row lg:overflow-hidden">
 			<!-- Left Panel: Form Questions -->
-			<div class="flex w-full flex-col overflow-hidden bg-white dark:bg-gray-900 lg:w-1/2">
-				<div class="flex h-auto flex-1 flex-col p-6">
+			<div class="flex w-full flex-col bg-white dark:bg-gray-900 lg:w-1/2 lg:overflow-y-auto">
+				<div class="flex flex-1 flex-col p-6">
 					<!-- Form Header -->
 					<div class="mb-6 flex-shrink-0">
 						<h1 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
@@ -276,7 +276,7 @@
 						}}
 						class="flex min-h-0 flex-1 flex-col"
 					>
-						<div class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
+						<div class="flex-1 space-y-4">
 							{#each persona.promptStructure as { label, field, fieldSuggestions }}
 								<div class="space-y-2">
 									<div class="flex items-center justify-between">
@@ -337,8 +337,8 @@
 			</div>
 
 			<!-- Right Panel: Image Preview & Controls -->
-			<div class="flex w-full flex-col overflow-hidden border-t bg-gray-50 dark:border-gray-700 dark:bg-gray-800 lg:w-1/2 lg:border-l lg:border-t-0 {generatedImage || progressValue > 50 ? '' : 'hidden lg:flex'}">
-				<div class="flex h-auto flex-1 flex-col p-6">
+			<div class="flex w-full flex-col border-t bg-gray-50 dark:border-gray-700 dark:bg-gray-800 lg:w-1/2 lg:overflow-y-auto lg:border-l lg:border-t-0 {generatedImage || progressValue > 50 ? '' : 'hidden lg:flex'}">
+				<div class="flex flex-1 flex-col p-6">
 					<!-- Header -->
 					<div class="mb-6 flex-shrink-0">
 						<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
