@@ -26,8 +26,12 @@ export async function GET(event: RequestEvent) {
 export async function POST(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
+		console.log('POST /api/images started');
 		const { request, platform } = event;
+		console.log('Platform available:', !!platform, 'D1 binding:', !!platform?.env?.z_interact_db);
+		
 		const body = await request.json();
+		console.log('Request body parsed:', { ...body, prompt: body.prompt ? '[truncated]' : undefined });
 
 		// Check if this is an image generation request or just saving an existing image
 		const isGenerationRequest = body.prompt && body.personaId && !body.imageUrl;
@@ -83,7 +87,9 @@ export async function POST(event: RequestEvent) {
 		}
 
 		// Save image to database
+		console.log('Getting database connection...');
 		const database = getDb(platform);
+		console.log('Database connection obtained');
 
 		const newImage: NewImage = {
 			id: crypto.randomUUID(),
@@ -103,7 +109,9 @@ export async function POST(event: RequestEvent) {
 			migratedAt: null
 		};
 
+		console.log('Inserting image into database...');
 		await database.insert(images).values(newImage);
+		console.log('Image inserted successfully');
 
 		// Return format that matches the expected interface
 		if (isGenerationRequest) {

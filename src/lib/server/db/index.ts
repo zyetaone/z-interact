@@ -14,21 +14,47 @@ type Platform = { env?: Record<string, any> } | undefined;
  * - Development: Uses local SQLite file via libSQL
  */
 export function getDb(platform?: Platform): DatabaseConnection {
-	// Force local development to use libSQL (ignore D1 binding in dev mode)
+	const isCloudflare = typeof process === 'undefined';
 	const isDevelopment = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
 
-	// Only use D1 in production when platform binding exists
-	if (!isDevelopment && platform?.env?.z_interact_db) {
+	console.log('Database connection attempt:', { isCloudflare, isDevelopment, hasPlatform: !!platform, hasD1Binding: !!platform?.env?.z_interact_db });
+
+	// Cloudflare Pages/Workers - MUST use D1 binding
+	if (isCloudflare) {
+		if (!platform?.env?.z_interact_db) {
+			throw new Error('D1 database binding "z_interact_db" not found in Cloudflare environment');
+		}
+		console.log('Using D1 database connection');
 		return drizzleD1(platform.env.z_interact_db, { schema });
 	}
 
-	// Development or fallback using libSQL
+	// Local development - use libSQL
+	if (isDevelopment) {
+		try {
+			const client = createClient({ url: env.DATABASE_URL });
+			console.log('Using libSQL database connection:', env.DATABASE_URL);
+			return drizzleLibSQL(client, { schema });
+		} catch (error) {
+			throw new Error(
+				`Local database connection failed. Ensure DATABASE_URL is set correctly. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	// Production Node.js - prefer D1 if available, fallback to libSQL
+	if (platform?.env?.z_interact_db) {
+		console.log('Using D1 database connection in production');
+		return drizzleD1(platform.env.z_interact_db, { schema });
+	}
+
+	// Final fallback for production without platform binding
 	try {
 		const client = createClient({ url: env.DATABASE_URL });
+		console.log('Using libSQL fallback in production:', env.DATABASE_URL);
 		return drizzleLibSQL(client, { schema });
 	} catch (error) {
 		throw new Error(
-			`Database connection failed. Ensure DATABASE_URL is set correctly. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+			`Production database connection failed. No D1 binding found and libSQL fallback failed. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
 		);
 	}
 }
