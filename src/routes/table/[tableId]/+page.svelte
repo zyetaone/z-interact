@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import type { PromptFields, Persona, Table } from '$lib/config.svelte';
 	import { workspaceStore } from '$lib/stores/workspace.svelte';
