@@ -13,13 +13,13 @@ migrations_dir = "drizzle"
 # R2 Bucket binding for image storage
 [[r2_buckets]]
 binding = "R2_IMAGES"
-bucket_name = "z-interact-images"
+bucket_name = "r2-store"
 
 # Environment variables
 [vars]
 # R2 Configuration
 R2_PUBLIC_URL = "https://images.z-interact.com"  # Replace with your custom domain or r2.dev URL
-ENABLE_R2_STORAGE = "true"  # R2 storage is now enabled with fallback to base64
+ENABLE_R2_STORAGE = "true"  # R2 storage enabled with r2-store bucket
 MIGRATION_BATCH_SIZE = "10"
 
 # Optional: R2 bucket configuration for development

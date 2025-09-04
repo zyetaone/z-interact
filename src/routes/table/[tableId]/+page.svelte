@@ -100,17 +100,42 @@
 		}
 
 		// 2. Persona Description (instead of preamble)
-		promptParts.push(persona.description);
+		promptParts.push(`PERSONA: ${persona.description}`);
 
-		// 3. Form field inputs
+		// 3. Form field inputs - show ALL fields, even empty ones
 		for (const { label, field } of persona.promptStructure) {
 			const value = formData[field];
-			if (value) {
-				promptParts.push(`${label.replace(/\?$/, '')}: ${value}`);
+			const cleanLabel = label.replace(/\?$/, '');
+			
+			if (value && value.trim()) {
+				promptParts.push(`${cleanLabel}: ${value.trim()}`);
+			} else {
+				promptParts.push(`${cleanLabel}: [Not provided yet]`);
 			}
 		}
 
-		// Removed postamble - not needed per user requirements
+		return promptParts.join('\n\n');
+	}
+
+	// Build prompt for AI generation (only includes filled fields)
+	function buildPromptForGeneration(): string {
+		if (!persona) return '';
+
+		const promptParts = [];
+
+		// 1. Master System Prompt
+		promptParts.push(globalConfig.masterSystemPrompt);
+
+		// 2. Persona Description
+		promptParts.push(persona.description);
+
+		// 3. Form field inputs - only include filled fields
+		for (const { label, field } of persona.promptStructure) {
+			const value = formData[field];
+			if (value && value.trim()) {
+				promptParts.push(`${label.replace(/\?$/, '')}: ${value.trim()}`);
+			}
+		}
 
 		return promptParts.join('\n\n');
 	}
@@ -118,7 +143,7 @@
 	async function generateImage() {
 		if (!validateForm() || !persona) return;
 
-		const finalPrompt = buildPromptFromConfig(true);
+		const finalPrompt = buildPromptForGeneration();
 
 		try {
 			const result = await workspaceStore.generateImage(persona.id, finalPrompt, table.id);
@@ -132,7 +157,7 @@
 	async function lockInImage() {
 		if (!generatedImage || !persona) return;
 
-		const finalPrompt = buildPromptFromConfig(false); // Exclude system prompt for storage
+		const finalPrompt = buildPromptForGeneration(); // Use dedicated function for generation
 
 		try {
 			await workspaceStore.lockImage({
