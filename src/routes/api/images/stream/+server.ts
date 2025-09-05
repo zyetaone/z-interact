@@ -1,5 +1,5 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { imageGenerator } from '$lib/server/ai/image-generator';
+import { unifiedImageGenerator } from '$lib/server/ai/unified-image-generator';
 import { object, string, optional, parse } from 'valibot';
 
 // Validation schema for streaming request
@@ -35,12 +35,13 @@ export async function POST(event: RequestEvent) {
 
 				try {
 					// Start image generation with streaming
-					const imageStream = imageGenerator.generateImageStream({
+					const imageStream = unifiedImageGenerator.generateImageStream({
 						prompt: validatedBody.prompt,
+						mode: 'auto', // Auto-select best API
+						model: 'gpt-4.1', // Use streaming-capable model
 						size: '1024x1024', // Square format - most cost effective
-						quality: 'low', // Low quality for $0.01 per image
-						background: 'auto',
-						partial_images: 1, // Reduce to 1 partial image for faster generation
+						quality: 'low', // Low quality for cost savings
+						partialImages: 2, // Show progress with partial images
 						stream: true
 					});
 
@@ -53,8 +54,9 @@ export async function POST(event: RequestEvent) {
 							// Send partial image event
 							const data = JSON.stringify({
 								type: 'partial',
-								index: event.partial_image_index ?? partialCount,
-								image: event.b64_json,
+								index: event.partialImageIndex ?? partialCount,
+								image: event.imageBase64,
+								progress: event.progress,
 								timestamp: Date.now()
 							});
 
@@ -64,8 +66,8 @@ export async function POST(event: RequestEvent) {
 							// Send completion event with full image
 							const data = JSON.stringify({
 								type: 'completed',
-								image: event.b64_json,
-								usage: event.usage,
+								image: event.imageBase64,
+								responseId: event.responseId, // Store for multi-turn editing
 								personaId: validatedBody.personaId,
 								tableId: validatedBody.tableId,
 								timestamp: Date.now()

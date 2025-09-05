@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { images, generateImageRequestSchema, saveImageRequestSchema } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { imageGenerator } from '$lib/server/ai/image-generator';
+import { unifiedImageGenerator } from '$lib/server/ai/unified-image-generator';
 import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
@@ -79,26 +79,28 @@ export async function POST(event: RequestEvent) {
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
 			try {
-				console.log('Generating image with OpenAI SDK (gpt-image-1)...');
-				const result = await imageGenerator.generateImage({
+				console.log('Generating image with Unified Generator...');
+				const result = await unifiedImageGenerator.generateImage({
 					prompt: validatedBody.prompt,
+					mode: 'auto', // Auto-select best API
+					model: 'gpt-5-mini', // Try GPT-5 mini for cost efficiency
 					size: '1024x1024', // Square format - most cost effective
-					quality: 'low', // Low quality for $0.01 per image (gpt-image-1)
-					background: 'auto' // Let model determine best background
+					quality: 'low' // Low quality for cost savings
 				});
 
 				console.log('Image generated:', {
 					provider: result.provider,
-					hasBase64: !!result.b64_json,
+					hasBase64: !!result.imageBase64,
+					hasUrl: !!result.imageUrl,
 					model: result.metadata?.model
 				});
 
-				// gpt-image-1 returns b64_json, convert to data URL
+				// Get image URL (either provided or convert from base64)
 				let imageUrl: string;
-				if (result.b64_json) {
-					imageUrl = `data:image/png;base64,${result.b64_json}`;
-				} else if (result.imageUrl) {
+				if (result.imageUrl) {
 					imageUrl = result.imageUrl;
+				} else if (result.imageBase64) {
+					imageUrl = `data:image/png;base64,${result.imageBase64}`;
 				} else {
 					throw new Error('No image data returned from generator');
 				}
@@ -108,8 +110,8 @@ export async function POST(event: RequestEvent) {
 				const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
 
 				console.log('Uploading to R2 storage...');
-				const uploadResult = result.b64_json
-					? await r2Storage.uploadImageFromBase64(result.b64_json, filename)
+				const uploadResult = result.imageBase64
+					? await r2Storage.uploadImageFromBase64(result.imageBase64, filename)
 					: await r2Storage.uploadImageFromUrl(imageUrl, filename);
 
 				if (uploadResult.success && uploadResult.url) {
