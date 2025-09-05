@@ -14,33 +14,68 @@
 	let { open = $bindable(false), tables, personas, baseUrl }: Props = $props();
 
 	function handlePrintAll() {
-		// Create a new window for printing all QR codes
-		const printWindow = window.open('', '_blank');
-		if (!printWindow) {
-			toastStore.error('Pop-up blocked. Please allow pop-ups and try again.');
-			return;
-		}
-
-		// Generate HTML content for all QR codes
-		let qrCodeSections = '';
-		const qrImages = document.querySelectorAll('.all-qr-modal img');
-
-		tables.forEach((table, index) => {
-			const qrImg = qrImages[index] as HTMLImageElement;
-			const url = `${baseUrl}/table/${table.id}`;
-
-			if (qrImg) {
-				qrCodeSections += `
-					<div class="qr-section">
-						<div class="qr-header">
-							<div class="qr-title">${table.displayName}</div>
-							<div class="qr-url">${url}</div>
-						</div>
-						<img class="qr-image" src="${qrImg.src}" alt="QR Code for ${table.displayName}" />
-					</div>
-				`;
+		// Wait a moment for QR codes to be fully rendered
+		setTimeout(() => {
+			// Create a new window for printing all QR codes
+			const printWindow = window.open('', '_blank');
+			if (!printWindow) {
+				toastStore.error('Pop-up blocked. Please allow pop-ups and try again.');
+				return;
 			}
-		});
+
+			// Generate HTML content for all QR codes
+			let qrCodeSections = '';
+			// Get all canvas elements (QR codes are rendered as canvas)
+			const qrCanvases = document.querySelectorAll('.all-qr-modal canvas');
+			
+			if (qrCanvases.length === 0) {
+				// If no canvas elements found, try img elements
+				const qrImages = document.querySelectorAll('.all-qr-modal img');
+				
+				tables.forEach((table, index) => {
+					const qrImg = qrImages[index] as HTMLImageElement;
+					const url = `${baseUrl}/table/${table.id}`;
+
+					if (qrImg && qrImg.src) {
+						qrCodeSections += `
+							<div class="qr-section">
+								<div class="qr-header">
+									<div class="qr-title">${table.displayName}</div>
+									<div class="qr-url">${url}</div>
+								</div>
+								<img class="qr-image" src="${qrImg.src}" alt="QR Code for ${table.displayName}" />
+							</div>
+						`;
+					}
+				});
+			} else {
+				// Use canvas elements
+				tables.forEach((table, index) => {
+					const qrCanvas = qrCanvases[index] as HTMLCanvasElement;
+					const url = `${baseUrl}/table/${table.id}`;
+
+					if (qrCanvas) {
+						// Convert canvas to data URL
+						const dataUrl = qrCanvas.toDataURL('image/png');
+						qrCodeSections += `
+							<div class="qr-section">
+								<div class="qr-header">
+									<div class="qr-title">${table.displayName}</div>
+									<div class="qr-url">${url}</div>
+								</div>
+								<img class="qr-image" src="${dataUrl}" alt="QR Code for ${table.displayName}" />
+							</div>
+						`;
+					}
+				});
+			}
+
+			// If no QR codes found at all, show error
+			if (qrCodeSections === '') {
+				toastStore.error('QR codes are still loading. Please try again.');
+				printWindow.close();
+				return;
+			}
 
 		// Write content to the new window
 		printWindow.document.write(`
@@ -133,14 +168,15 @@
 
 		printWindow.document.close();
 
-		// Wait for content to load, then print and close
-		printWindow.onload = () => {
-			setTimeout(() => {
-				printWindow.print();
-				printWindow.close();
-				toastStore.success('QR codes sent to printer');
-			}, 500);
-		};
+			// Wait for content to load, then print and close
+			printWindow.onload = () => {
+				setTimeout(() => {
+					printWindow.print();
+					printWindow.close();
+					toastStore.success('QR codes sent to printer');
+				}, 500);
+			};
+		}, 100); // Wait 100ms for QR codes to render
 	}
 
 	async function copyAllUrls() {
