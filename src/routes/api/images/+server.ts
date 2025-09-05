@@ -82,8 +82,8 @@ export async function POST(event: RequestEvent) {
 				console.log('Generating image with OpenAI SDK (gpt-image-1)...');
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
-					size: '1536x1024', // Landscape format for workspace visualization
-					quality: 'high', // High quality for better workspace details
+					size: '1024x1024', // Square format - most cost effective
+					quality: 'low', // Low quality for $0.01 per image (gpt-image-1)
 					background: 'auto' // Let model determine best background
 				});
 

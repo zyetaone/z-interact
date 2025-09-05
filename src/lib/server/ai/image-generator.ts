@@ -3,7 +3,7 @@ import { env } from '../env';
 
 export interface ImageGenerationOptions {
 	prompt: string;
-	size?: '1536x1024' | '1024x1536' | 'auto';
+	size?: '1024x1024' | '1536x1024' | '1024x1536' | 'auto';
 	quality?: 'high' | 'medium' | 'low' | 'auto';
 	background?: 'transparent' | 'opaque' | 'auto';
 	partial_images?: number;
@@ -75,8 +75,8 @@ export class ImageGenerator {
 				model: 'gpt-image-1',
 				prompt: options.prompt,
 				n: 1,
-				size: options.size || '1536x1024', // Landscape format for workspaces
-				quality: options.quality || 'high',
+				size: options.size || '1024x1024', // Square format - most cost effective
+				quality: options.quality || 'low', // Low quality for $0.01 per image
 				background: options.background || 'auto',
 				partial_images: options.partial_images || 0,
 				stream: true
@@ -110,8 +110,8 @@ export class ImageGenerator {
 						model: 'dall-e-3',
 						prompt: options.prompt,
 						n: 1,
-						size: '1792x1024', // dall-e-3 landscape size
-						quality: 'hd',
+						size: '1024x1024', // Square format - cheaper ($0.04 vs $0.08)
+						quality: 'standard', // Standard quality saves 50% cost
 						response_format: 'b64_json'
 					});
 
@@ -158,8 +158,8 @@ export class ImageGenerator {
 				model: 'gpt-image-1',
 				prompt: options.prompt,
 				n: 1,
-				size: options.size || '1536x1024', // Landscape format for workspaces
-				quality: options.quality || 'high',
+				size: options.size || '1024x1024', // Square format - most cost effective
+				quality: options.quality || 'low', // Low quality for $0.01 per image
 				background: options.background || 'auto'
 			} as any);
 
@@ -176,8 +176,8 @@ export class ImageGenerator {
 				prompt: options.prompt,
 				metadata: {
 					model: 'gpt-image-1',
-					size: options.size || '1536x1024',
-					quality: options.quality || 'high',
+					size: options.size || '1024x1024',
+					quality: options.quality || 'low',
 					background: options.background || 'auto'
 				}
 			};
@@ -194,8 +194,8 @@ export class ImageGenerator {
 					model: 'dall-e-3',
 					prompt: options.prompt,
 					n: 1,
-					size: '1792x1024', // dall-e-3 landscape size
-					quality: 'hd',
+					size: '1024x1024', // Square format - cheaper ($0.04 vs $0.08)
+					quality: 'standard', // Standard quality saves 50% cost
 					response_format: 'url'
 				});
 
@@ -212,8 +212,8 @@ export class ImageGenerator {
 					revisedPrompt: data.revised_prompt,
 					metadata: {
 						model: 'dall-e-3',
-						size: '1792x1024',
-						quality: 'hd',
+						size: '1024x1024',
+						quality: 'standard',
 						note: 'Fallback from gpt-image-1 (verification required)'
 					}
 				};
@@ -226,8 +226,8 @@ export class ImageGenerator {
 
 	private generateFallback(prompt: string): ImageGenerationResult {
 		// Fallback to Picsum if OpenAI fails
-		// Using 1536x1024 to match our default landscape size
-		const imageUrl = `https://picsum.photos/1536/1024?random=${Date.now()}`;
+		// Using 1024x1024 square format to match our cost-optimized size
+		const imageUrl = `https://picsum.photos/1024/1024?random=${Date.now()}`;
 
 		return {
 			imageUrl,
