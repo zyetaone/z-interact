@@ -21,7 +21,7 @@ export interface PromptFieldConfig {
 }
 
 // Scene setting - establishes what we're creating
-export const SCENE_SETTING = `Architectural visualization: A 2030 corporate workspace interior. Single open floor with floor-to-ceiling windows overlooking the cityscape.`;
+export const SCENE_SETTING = `Architectural visualization: A 2030 corporate workspace interior.  overlooking the cityscape.`;
 
 // Rendering specifications - how to visualize (consolidated)
 export const RENDERING_SPECS = `Render specifications: Photorealistic architectural photography style. Wide-angle perspective showing complete workspace. Natural daylight through windows. Clean visual without any text, labels, logos, or watermarks. Focus on architectural details and spatial flow.`;
