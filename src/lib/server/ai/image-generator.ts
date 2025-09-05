@@ -62,7 +62,7 @@ export class ImageGenerator {
 			provider: 'openai',
 			prompt: options.prompt,
 			metadata: {
-				model: 'dall-e-3',
+				model: 'gpt-image-1',
 				size: options.size,
 				revisedPrompt: data.data[0].revised_prompt
 			}
