@@ -82,10 +82,10 @@ export async function POST(event: RequestEvent) {
 				console.log('Generating image with Unified Generator...');
 				const result = await unifiedImageGenerator.generateImage({
 					prompt: validatedBody.prompt,
-					mode: 'auto', // Auto-select best API
-					model: 'gpt-5-mini', // Try GPT-5 mini for cost efficiency
+					mode: 'legacy', // Use legacy API for gpt-image-1
+					model: 'gpt-image-1', // Now verified! $0.01 per image
 					size: '1024x1024', // Square format - most cost effective
-					quality: 'low' // Low quality for cost savings
+					quality: 'low' // Low quality for $0.01 per image
 				});
 
 				console.log('Image generated:', {

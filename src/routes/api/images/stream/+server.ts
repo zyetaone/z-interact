@@ -37,10 +37,10 @@ export async function POST(event: RequestEvent) {
 					// Start image generation with streaming
 					const imageStream = unifiedImageGenerator.generateImageStream({
 						prompt: validatedBody.prompt,
-						mode: 'auto', // Auto-select best API
-						model: 'gpt-4.1', // Use streaming-capable model
+						mode: 'legacy', // Use legacy API for gpt-image-1
+						model: 'gpt-image-1', // Now verified! $0.01 per image
 						size: '1024x1024', // Square format - most cost effective
-						quality: 'low', // Low quality for cost savings
+						quality: 'low', // Low quality for $0.01 per image
 						partialImages: 2, // Show progress with partial images
 						stream: true
 					});

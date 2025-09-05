@@ -69,8 +69,8 @@ export class ImageGenerator {
 		}
 
 		try {
-			// Try gpt-image-1 with streaming first
-			console.log('Attempting streaming with gpt-image-1...');
+			// Use gpt-image-1 with streaming (now verified!)
+			console.log('Streaming with gpt-image-1 (verified)...');
 			const response = await this.client.images.generate({
 				model: 'gpt-image-1',
 				prompt: options.prompt,
@@ -78,7 +78,7 @@ export class ImageGenerator {
 				size: options.size || '1024x1024', // Square format - most cost effective
 				quality: options.quality || 'low', // Low quality for $0.01 per image
 				background: options.background || 'auto',
-				partial_images: options.partial_images || 0,
+				partial_images: options.partial_images || 2, // Enable partial images
 				stream: true
 			} as any);
 
@@ -152,8 +152,8 @@ export class ImageGenerator {
 		}
 
 		try {
-			// Try gpt-image-1 first
-			console.log('Attempting generation with gpt-image-1...');
+			// Try gpt-image-1 first (now verified!)
+			console.log('Generating with gpt-image-1 (verified)...');
 			const response = await this.client.images.generate({
 				model: 'gpt-image-1',
 				prompt: options.prompt,
@@ -169,6 +169,8 @@ export class ImageGenerator {
 
 			const data = response.data[0];
 
+			console.log('✅ gpt-image-1 generation successful! Cost: $0.01');
+
 			// gpt-image-1 always returns b64_json
 			return {
 				b64_json: data.b64_json,
@@ -178,16 +180,17 @@ export class ImageGenerator {
 					model: 'gpt-image-1',
 					size: options.size || '1024x1024',
 					quality: options.quality || 'low',
-					background: options.background || 'auto'
+					background: options.background || 'auto',
+					cost: 0.01
 				}
 			};
 		} catch (error: any) {
-			// Check if it's a verification error
+			// Only fall back for actual errors, not verification
 			if (
 				error?.message?.includes('verified') ||
 				error?.response?.data?.error?.message?.includes('verified')
 			) {
-				console.log('gpt-image-1 requires verification, falling back to dall-e-3...');
+				console.log('Note: Verification error (should be resolved now)...');
 
 				// Fallback to dall-e-3
 				const response = await this.client.images.generate({
