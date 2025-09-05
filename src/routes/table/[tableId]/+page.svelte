@@ -6,7 +6,7 @@
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button } from '$lib/components/ui';
 	import { globalConfig } from '$lib/config.svelte';
-	import { TECHNICAL_REQUIREMENTS } from '$lib/promptConfig.svelte';
+	import { SCENE_SETTING, RENDERING_SPECS } from '$lib/promptConfig.svelte';
 	import {
 		Card,
 		Textarea,
@@ -95,9 +95,9 @@
 
 		const promptParts = [];
 
-		// 1. Master System Prompt
+		// 1. Scene Setting
 		if (includeSystemPrompt) {
-			promptParts.push(globalConfig.masterSystemPrompt);
+			promptParts.push(SCENE_SETTING);
 		}
 
 		// 2. Persona Context with requirements
@@ -120,11 +120,14 @@
 				case 'colorPalette':
 					fieldsList.push(`- A color palette of ${displayValue}`);
 					break;
-				case 'mood':
-					fieldsList.push(`- A mood that is ${displayValue}`);
+				case 'atmosphere':
+					fieldsList.push(`- An atmosphere that is ${displayValue}`);
 					break;
-				case 'designedToFeel':
-					fieldsList.push(`- A space designed to feel ${displayValue}`);
+				case 'mood': // Legacy support
+				case 'designedToFeel': // Legacy support
+					if (!formData['atmosphere']) {
+						fieldsList.push(`- An atmosphere that is ${displayValue}`);
+					}
 					break;
 				case 'additionalFeatures':
 					fieldsList.push(`- Additional elements: ${displayValue}`);
@@ -135,64 +138,72 @@
 		personaParts.push(fieldsList.join('\n'));
 		promptParts.push(personaParts.join(''));
 
-		// 4. Technical Requirements (for display)
+		// 4. Rendering Specs (for display)
 		if (includeSystemPrompt) {
-			promptParts.push(`\n${TECHNICAL_REQUIREMENTS}`);
+			promptParts.push(`\n${RENDERING_SPECS}`);
 		}
 
 		return promptParts.join('\n');
 	}
 
-	// Build prompt for AI generation (only includes filled fields)
+	// Build prompt for AI generation using chain-of-thought approach
 	function buildPromptForGeneration(): string {
 		if (!persona) return '';
 
 		const promptParts = [];
 
-		// 1. Master System Prompt
-		promptParts.push(globalConfig.masterSystemPrompt);
+		// 1. SCENE SETTING - What we're creating
+		promptParts.push(SCENE_SETTING);
 
-		// 2. Persona Context with consolidated requirements
-		const personaParts = [];
-		personaParts.push(`\n${persona.description}, who wants:\n`);
-
-		// 3. Consolidated form inputs as a flowing list
-		const filledFields = [];
-		for (const { label, field } of persona.promptStructure) {
+		// 2. USER VISION - Core concepts from persona and inputs
+		promptParts.push(`\nDesigned specifically for: ${persona.description}`);
+		
+		// Collect user inputs as core design requirements
+		const userVision = [];
+		for (const { field } of persona.promptStructure) {
 			const value = formData[field];
+			// Handle both new atmosphere field and legacy mood/designedToFeel
+			if ((field === 'mood' || field === 'designedToFeel') && formData['atmosphere']) {
+				continue; // Skip if atmosphere is filled
+			}
+			
 			if (value && value.trim()) {
-				// Transform the label into a more natural format
 				switch (field) {
 					case 'environment':
-						filledFields.push(`- An environment that is ${value.trim()}`);
+						userVision.push(`Environment: ${value.trim()}`);
 						break;
 					case 'features':
-						filledFields.push(`- An office featuring ${value.trim()}`);
+						userVision.push(`Key features: ${value.trim()}`);
 						break;
 					case 'colorPalette':
-						filledFields.push(`- A color palette of ${value.trim()}`);
+						userVision.push(`Color palette: ${value.trim()}`);
 						break;
-					case 'mood':
-						filledFields.push(`- A mood that is ${value.trim()}`);
+					case 'atmosphere':
+						userVision.push(`Atmosphere: ${value.trim()}`);
 						break;
-					case 'designedToFeel':
-						filledFields.push(`- A space designed to feel ${value.trim()}`);
+					case 'mood': // Legacy support
+						if (!formData['atmosphere']) {
+							userVision.push(`Atmosphere: ${value.trim()}`);
+						}
+						break;
+					case 'designedToFeel': // Legacy support
+						if (!formData['atmosphere'] && !formData['mood']) {
+							userVision.push(`Feeling: ${value.trim()}`);
+						}
 						break;
 					case 'additionalFeatures':
-						filledFields.push(`- Additional elements: ${value.trim()}`);
+						userVision.push(`Special elements: ${value.trim()}`);
 						break;
 				}
 			}
 		}
 
-		if (filledFields.length > 0) {
-			personaParts.push(filledFields.join('\n'));
+		if (userVision.length > 0) {
+			promptParts.push(`\nCore design requirements:\n${userVision.join('\n')}`);
 		}
 
-		promptParts.push(personaParts.join(''));
-
-		// 4. Technical Requirements
-		promptParts.push(`\n${TECHNICAL_REQUIREMENTS}`);
+		// 3. RENDERING SPECS - How to visualize
+		promptParts.push(`\n${RENDERING_SPECS}`);
 
 		return promptParts.join('\n');
 	}

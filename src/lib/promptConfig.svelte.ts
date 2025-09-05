@@ -2,9 +2,11 @@ export interface PromptFields {
 	environment: string;
 	features: string;
 	colorPalette: string;
-	mood: string;
-	designedToFeel: string;
+	atmosphere: string; // Combined mood + feeling
 	additionalFeatures: string;
+	// Legacy fields for backward compatibility
+	mood?: string;
+	designedToFeel?: string;
 }
 
 export interface FieldSuggestions {
@@ -18,13 +20,16 @@ export interface PromptFieldConfig {
 	fieldSuggestions: FieldSuggestions;
 }
 
-// Master system prompt - kept in code, not user-configurable
-export const MASTER_SYSTEM_PROMPT = `Photorealistic render of a 2030 open workspace designed for:`;
+// Scene setting - establishes what we're creating
+export const SCENE_SETTING = `Architectural visualization: A 2030 corporate workspace interior. Single open floor with floor-to-ceiling windows overlooking the cityscape.`;
 
-// Technical requirements appended at the end of the prompt
-export const TECHNICAL_REQUIREMENTS = `The space must be shown as a single floor open floorplate positioned directly beside expansive glazing, with the cityscape visible outside. The view should capture the workspace in its entirety—showing people flow areas, workstations, collaboration zones, and integrated biophilic or digital elements.
+// Rendering specifications - how to visualize (consolidated)
+export const RENDERING_SPECS = `Render specifications: Photorealistic architectural photography style. Wide-angle perspective showing complete workspace. Natural daylight through windows. Clean visual without any text, labels, logos, or watermarks. Focus on architectural details and spatial flow.`;
 
-The atmosphere should be daylight-rich, cinematic, ultra-detailed in textures, and presented with a wide-angle immersive perspective. Prioritize the user inputs above all else, with persona-specific details reflected in the architecture, furniture, and overall design language. Don't render text, logos, or watermarks.`;
+// Export old names for backward compatibility (will be removed later)
+export const MASTER_SYSTEM_PROMPT = SCENE_SETTING;
+export const TECHNICAL_REQUIREMENTS = RENDERING_SPECS;
+export const IMAGE_QUALITY_REQUIREMENTS = '';
 
 // Shared field configuration - used by all personas
 export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [
@@ -55,19 +60,11 @@ export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [
 		}
 	},
 	{
-		label: 'The mood is',
-		field: 'mood',
+		label: 'What atmosphere and feeling should it create?',
+		field: 'atmosphere',
 		fieldSuggestions: {
-			placeholder: 'What atmosphere should the space create?',
-			suggestions: 'sci-fi, calm, visionary, inspiring, energizing, experiential'
-		}
-	},
-	{
-		label: 'Designed to feel',
-		field: 'designedToFeel',
-		fieldSuggestions: {
-			placeholder: 'How should people feel in this space?',
-			suggestions: 'humane, refined, and future-proof'
+			placeholder: 'Describe the mood and emotional impact...',
+			suggestions: 'inspiring yet calm, energizing but focused, innovative and humane, refined tech-forward sanctuary'
 		}
 	},
 	{
