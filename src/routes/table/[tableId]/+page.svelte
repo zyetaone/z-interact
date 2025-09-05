@@ -6,6 +6,7 @@
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { Button } from '$lib/components/ui';
 	import { globalConfig } from '$lib/config.svelte';
+	import { TECHNICAL_REQUIREMENTS } from '$lib/promptConfig.svelte';
 	import {
 		Card,
 		Textarea,
@@ -88,7 +89,7 @@
 		return Object.keys(newErrors).length === 0;
 	}
 
-	// Build prompt dynamically from config structure
+	// Build prompt dynamically from config structure (for display)
 	function buildPromptFromConfig(includeSystemPrompt = true): string {
 		if (!persona) return '';
 
@@ -99,22 +100,47 @@
 			promptParts.push(globalConfig.masterSystemPrompt);
 		}
 
-		// 2. Persona Description (instead of preamble)
-		promptParts.push(`PERSONA: ${persona.description}`);
+		// 2. Persona Context with requirements
+		const personaParts = [];
+		personaParts.push(`\n${persona.description}, who wants:\n`);
 
-		// 3. Form field inputs - show ALL fields, even empty ones
-		for (const { label, field } of persona.promptStructure) {
+		// 3. Show all fields with appropriate formatting
+		const fieldsList = [];
+		for (const { field } of persona.promptStructure) {
 			const value = formData[field];
-			const cleanLabel = label.replace(/\?$/, '');
-
-			if (value && value.trim()) {
-				promptParts.push(`${cleanLabel}: ${value.trim()}`);
-			} else {
-				promptParts.push(`${cleanLabel}: [Not provided yet]`);
+			const displayValue = value && value.trim() ? value.trim() : '[Not provided yet]';
+			
+			switch(field) {
+				case 'environment':
+					fieldsList.push(`- An environment that is ${displayValue}`);
+					break;
+				case 'features':
+					fieldsList.push(`- An office featuring ${displayValue}`);
+					break;
+				case 'colorPalette':
+					fieldsList.push(`- A color palette of ${displayValue}`);
+					break;
+				case 'mood':
+					fieldsList.push(`- A mood that is ${displayValue}`);
+					break;
+				case 'designedToFeel':
+					fieldsList.push(`- A space designed to feel ${displayValue}`);
+					break;
+				case 'additionalFeatures':
+					fieldsList.push(`- Additional elements: ${displayValue}`);
+					break;
 			}
 		}
+		
+		personaParts.push(fieldsList.join('\n'));
+		promptParts.push(personaParts.join(''));
 
-		return promptParts.join('\n\n');
+		// 4. Technical Requirements (for display)
+		if (includeSystemPrompt) {
+			promptParts.push(`\n${TECHNICAL_REQUIREMENTS}`);
+		}
+
+		return promptParts.join('\n');
 	}
 
 	// Build prompt for AI generation (only includes filled fields)
@@ -126,18 +152,49 @@
 		// 1. Master System Prompt
 		promptParts.push(globalConfig.masterSystemPrompt);
 
-		// 2. Persona Description
-		promptParts.push(persona.description);
+		// 2. Persona Context with consolidated requirements
+		const personaParts = [];
+		personaParts.push(`\n${persona.description}, who wants:\n`);
 
-		// 3. Form field inputs - only include filled fields
+		// 3. Consolidated form inputs as a flowing list
+		const filledFields = [];
 		for (const { label, field } of persona.promptStructure) {
 			const value = formData[field];
 			if (value && value.trim()) {
-				promptParts.push(`${label.replace(/\?$/, '')}: ${value.trim()}`);
+				// Transform the label into a more natural format
+				switch(field) {
+					case 'environment':
+						filledFields.push(`- An environment that is ${value.trim()}`);
+						break;
+					case 'features':
+						filledFields.push(`- An office featuring ${value.trim()}`);
+						break;
+					case 'colorPalette':
+						filledFields.push(`- A color palette of ${value.trim()}`);
+						break;
+					case 'mood':
+						filledFields.push(`- A mood that is ${value.trim()}`);
+						break;
+					case 'designedToFeel':
+						filledFields.push(`- A space designed to feel ${value.trim()}`);
+						break;
+					case 'additionalFeatures':
+						filledFields.push(`- Additional elements: ${value.trim()}`);
+						break;
+				}
 			}
 		}
+		
+		if (filledFields.length > 0) {
+			personaParts.push(filledFields.join('\n'));
+		}
 
-		return promptParts.join('\n\n');
+		promptParts.push(personaParts.join(''));
+
+		// 4. Technical Requirements
+		promptParts.push(`\n${TECHNICAL_REQUIREMENTS}`);
+		
+		return promptParts.join('\n');
 	}
 
 	async function generateImage() {

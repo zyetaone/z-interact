@@ -19,13 +19,12 @@ export interface PromptFieldConfig {
 }
 
 // Master system prompt - kept in code, not user-configurable
-export const MASTER_SYSTEM_PROMPT = `Photorealistic render of a 2030 open workspace that seamlessly incorporates the defined environment, office features, color palette, mood, designed feeling, and additional ideas, from the user inputs.
+export const MASTER_SYSTEM_PROMPT = `Photorealistic render of a 2030 open workspace designed for:`;
 
-The space must always be shown as a single floor open floorplate positioned directly beside expansive glazing, with the cityscape of the persona's location visible outside.
+// Technical requirements appended at the end of the prompt
+export const TECHNICAL_REQUIREMENTS = `The space must be shown as a single floor open floorplate positioned directly beside expansive glazing, with the cityscape visible outside. The view should capture the workspace in its entirety—showing people flow areas, workstations, collaboration zones, and integrated biophilic or digital elements.
 
-The view should capture the workspace in its entirety—showing people flow areas, workstations, collaboration zones, and integrated biophilic or digital elements—rather than isolated objects or random fragments.
-
-The atmosphere should be daylight-rich, cinematic, ultra-detailed in textures, and presented with a wide-angle immersive perspective. You should always priotritize the user inputs above all else, and persona specific details should be reflected in the architecture, furniture, and overall design language. Dont render text, logos, or watermarks.`;
+The atmosphere should be daylight-rich, cinematic, ultra-detailed in textures, and presented with a wide-angle immersive perspective. Prioritize the user inputs above all else, with persona-specific details reflected in the architecture, furniture, and overall design language. Don't render text, logos, or watermarks.`;
 
 // Shared field configuration - used by all personas
 export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [

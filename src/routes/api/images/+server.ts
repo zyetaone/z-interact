@@ -140,7 +140,7 @@ export async function POST(event: RequestEvent) {
 			}, { headers: corsHeaders });
 		} else {
 			// For save requests, also try to upload to R2 for persistence
-			if (isSaveRequest && imageUrl && !imageUrl.includes(platform?.env?.R2_PUBLIC_URL || '')) {
+			if (isSaveRequest && imageUrl && typeof imageUrl === 'string' && !imageUrl.includes(platform?.env?.R2_PUBLIC_URL || '')) {
 				try {
 					const r2Storage = createR2Storage(platform);
 					const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
