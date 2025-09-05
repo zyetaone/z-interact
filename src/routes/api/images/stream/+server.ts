@@ -21,7 +21,7 @@ export async function POST(event: RequestEvent) {
 		const headers = new Headers({
 			'Content-Type': 'text/event-stream',
 			'Cache-Control': 'no-cache',
-			'Connection': 'keep-alive',
+			Connection: 'keep-alive',
 			'X-Accel-Buffering': 'no', // Disable Nginx buffering
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -32,7 +32,7 @@ export async function POST(event: RequestEvent) {
 		const stream = new ReadableStream({
 			async start(controller) {
 				const encoder = new TextEncoder();
-				
+
 				try {
 					// Start image generation with streaming
 					const imageStream = imageGenerator.generateImageStream({
@@ -55,11 +55,10 @@ export async function POST(event: RequestEvent) {
 								image: event.b64_json,
 								timestamp: Date.now()
 							});
-							
+
 							controller.enqueue(encoder.encode(`event: partial_image\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-						} 
-						else if (event.type === 'completed') {
+						} else if (event.type === 'completed') {
 							// Send completion event with full image
 							const data = JSON.stringify({
 								type: 'completed',
@@ -69,41 +68,40 @@ export async function POST(event: RequestEvent) {
 								tableId: validatedBody.tableId,
 								timestamp: Date.now()
 							});
-							
+
 							controller.enqueue(encoder.encode(`event: completed\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-							
+
 							// Close the stream
 							controller.close();
-						}
-						else if (event.type === 'error') {
+						} else if (event.type === 'error') {
 							// Send error event
 							const data = JSON.stringify({
 								type: 'error',
 								error: event.error,
 								timestamp: Date.now()
 							});
-							
+
 							controller.enqueue(encoder.encode(`event: error\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-							
+
 							// Close the stream
 							controller.close();
 						}
 					}
 				} catch (error) {
 					console.error('Streaming generation error:', error);
-					
+
 					// Send error event
 					const data = JSON.stringify({
 						type: 'error',
 						error: error instanceof Error ? error.message : 'Unknown error occurred',
 						timestamp: Date.now()
 					});
-					
+
 					controller.enqueue(encoder.encode(`event: error\n`));
 					controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-					
+
 					// Close the stream
 					controller.close();
 				}
@@ -117,11 +115,11 @@ export async function POST(event: RequestEvent) {
 	} catch (error) {
 		console.error('Failed to initialize streaming:', error);
 		return new Response(
-			JSON.stringify({ 
+			JSON.stringify({
 				error: 'Failed to initialize image generation',
 				details: error instanceof Error ? error.message : 'Unknown error'
-			}), 
-			{ 
+			}),
+			{
 				status: 500,
 				headers: { 'Content-Type': 'application/json' }
 			}

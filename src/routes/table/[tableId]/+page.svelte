@@ -50,14 +50,14 @@
 	// Form completion progress
 	const formProgress = $derived(() => {
 		if (!persona) return 0;
-		
+
 		// Only count the fields that are actually shown in the form
-		const activeFields = persona.promptStructure.map(config => config.field);
-		const filledFields = activeFields.filter(field => {
+		const activeFields = persona.promptStructure.map((config) => config.field);
+		const filledFields = activeFields.filter((field) => {
 			const value = formData[field as keyof PromptFields];
 			return value && value.trim().length >= 10;
 		}).length;
-		
+
 		return Math.round((filledFields / activeFields.length) * 100);
 	});
 
@@ -92,11 +92,11 @@
 
 		// Only validate fields that are actually shown in the form
 		if (!persona) return false;
-		
+
 		for (const config of persona.promptStructure) {
 			const value = formData[config.field];
 			if (!value || value.trim().length < 10) {
-				newErrors[config.field] = 
+				newErrors[config.field] =
 					'Please provide a more detailed description (at least 10 characters).';
 			}
 		}
@@ -246,12 +246,12 @@
 
 	async function generateImageWithStreaming(prompt: string) {
 		if (!persona) return;
-		
+
 		// Reset state
 		partialImage = null;
 		generatedImage = null;
 		streamProgress = 0;
-		
+
 		try {
 			// Create EventSource for SSE
 			const response = await fetch('/api/images/stream', {
@@ -273,29 +273,29 @@
 			// Read the stream
 			const reader = response.body?.getReader();
 			const decoder = new TextDecoder();
-			
+
 			if (!reader) {
 				throw new Error('No response stream available');
 			}
 
 			let buffer = '';
-			
+
 			while (true) {
 				const { done, value } = await reader.read();
-				
+
 				if (done) break;
-				
+
 				buffer += decoder.decode(value, { stream: true });
-				
+
 				// Process SSE events in buffer
 				const lines = buffer.split('\n');
 				buffer = lines.pop() || '';
-				
+
 				for (const line of lines) {
 					if (line.startsWith('data: ')) {
 						try {
 							const data = JSON.parse(line.slice(6));
-							
+
 							if (data.type === 'partial') {
 								// Update partial image preview
 								partialImage = `data:image/png;base64,${data.image}`;
@@ -304,15 +304,14 @@
 							} else if (data.type === 'completed') {
 								// Final image received
 								const finalImageData = `data:image/png;base64,${data.image}`;
-								
-								// Save to workspace store
-								const result = await workspaceStore.saveGeneratedImage(
+
+								// Save to workspace store using existing method
+								const result = await workspaceStore.generateImage(
 									persona.id,
-									finalImageData,
 									prompt,
 									table.id
 								);
-								
+
 								generatedImage = result.imageUrl;
 								partialImage = null;
 								streamProgress = 100;
