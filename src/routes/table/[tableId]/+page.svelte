@@ -87,9 +87,13 @@
 	function validateForm(): boolean {
 		const newErrors: Partial<PromptFields> = {};
 
-		for (const [key, value] of Object.entries(formData)) {
-			if (!value || value.length < 10) {
-				newErrors[key as keyof PromptFields] =
+		// Only validate fields that are actually shown in the form
+		if (!persona) return false;
+		
+		for (const config of persona.promptStructure) {
+			const value = formData[config.field];
+			if (!value || value.trim().length < 10) {
+				newErrors[config.field] = 
 					'Please provide a more detailed description (at least 10 characters).';
 			}
 		}
