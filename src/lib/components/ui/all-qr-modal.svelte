@@ -28,14 +28,12 @@
 		tables.forEach((table, index) => {
 			const qrImg = qrImages[index] as HTMLImageElement;
 			const url = `${baseUrl}/table/${table.id}`;
-			// const persona = personas[table.personaId];
 
 			if (qrImg) {
 				qrCodeSections += `
 					<div class="qr-section">
 						<div class="qr-header">
 							<div class="qr-title">${table.displayName}</div>
-							<!-- <div class="qr-persona">${persona?.title || 'Unknown Persona'}</div> -->
 							<div class="qr-url">${url}</div>
 						</div>
 						<img class="qr-image" src="${qrImg.src}" alt="QR Code for ${table.displayName}" />
