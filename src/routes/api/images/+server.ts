@@ -78,14 +78,24 @@ export async function POST(event: RequestEvent) {
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
 			try {
-				console.log('Generating image with OpenAI...');
+				console.log('Generating image with OpenAI SDK (DALL-E 3)...');
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
-					size: '1024x1024',
-					quality: 'standard'
+					size: '1792x1024', // Landscape format for workspace visualization
+					quality: 'hd', // High quality for better workspace details
+					response_format: 'url' // Get URL for R2 upload
 				});
 
-				console.log('Image generated, temporary URL:', result.imageUrl);
+				console.log('Image generated:', {
+					provider: result.provider,
+					hasUrl: !!result.imageUrl,
+					model: result.metadata?.model
+				});
+
+				// Check if we got an image URL
+				if (!result.imageUrl) {
+					throw new Error('No image URL returned from generator');
+				}
 
 				// Upload to R2 storage for permanent storage
 				const r2Storage = createR2Storage(platform);

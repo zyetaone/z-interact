@@ -24,7 +24,7 @@ export interface PromptFieldConfig {
 export const SCENE_SETTING = `Architectural visualization: A 2030 corporate workspace interior.  overlooking the cityscape.`;
 
 // Rendering specifications - how to visualize (consolidated)
-export const RENDERING_SPECS = `Render specifications: Photorealistic architectural photography style. Wide-angle perspective showing complete workspace. Natural daylight through windows. Clean visual without any text, labels, logos, or watermarks. Focus on architectural details and spatial flow.`;
+export const RENDERING_SPECS = `Render specifications: Photorealistic architectural photography style. Wide-angle perspective showing complete workspace. Depth of field <Important>Clean visual without any text, labels, logos, or watermarks. Focus on architectural details and spatial flow. Follow color palette specified</Important>`;
 
 // Export old names for backward compatibility (will be removed later)
 export const MASTER_SYSTEM_PROMPT = SCENE_SETTING;

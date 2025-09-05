@@ -39,10 +39,13 @@
 	});
 
 	let generatedImage = $state<string | null>(null);
+	let partialImage = $state<string | null>(null); // For streaming preview
 	let isLocked = $state(false);
 	let errors = $state<Partial<PromptFields>>({});
 	let showPromptPreview = $state(false);
 	let showInfoModal = $state(false);
+	let useStreaming = $state(true); // Enable streaming by default
+	let streamProgress = $state(0); // Track streaming progress
 
 	// Form completion progress
 	const formProgress = $derived(() => {
@@ -226,12 +229,108 @@
 
 		const finalPrompt = buildPromptForGeneration();
 
+		// Use streaming if enabled
+		if (useStreaming) {
+			await generateImageWithStreaming(finalPrompt);
+		} else {
+			// Traditional generation without streaming
+			try {
+				const result = await workspaceStore.generateImage(persona.id, finalPrompt, table.id);
+				generatedImage = result.imageUrl;
+				toastStore.success('Image generated successfully!');
+			} catch (error) {
+				toastStore.error('Failed to generate image. Please try again.');
+			}
+		}
+	}
+
+	async function generateImageWithStreaming(prompt: string) {
+		if (!persona) return;
+		
+		// Reset state
+		partialImage = null;
+		generatedImage = null;
+		streamProgress = 0;
+		
 		try {
-			const result = await workspaceStore.generateImage(persona.id, finalPrompt, table.id);
-			generatedImage = result.imageUrl;
-			toastStore.success('Image generated successfully!');
+			// Create EventSource for SSE
+			const response = await fetch('/api/images/stream', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					prompt,
+					personaId: persona.id,
+					tableId: table.id
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to start image generation');
+			}
+
+			// Read the stream
+			const reader = response.body?.getReader();
+			const decoder = new TextDecoder();
+			
+			if (!reader) {
+				throw new Error('No response stream available');
+			}
+
+			let buffer = '';
+			
+			while (true) {
+				const { done, value } = await reader.read();
+				
+				if (done) break;
+				
+				buffer += decoder.decode(value, { stream: true });
+				
+				// Process SSE events in buffer
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+				
+				for (const line of lines) {
+					if (line.startsWith('data: ')) {
+						try {
+							const data = JSON.parse(line.slice(6));
+							
+							if (data.type === 'partial') {
+								// Update partial image preview
+								partialImage = `data:image/png;base64,${data.image}`;
+								streamProgress = data.index * 25; // Estimate progress
+								toastStore.info(`Generating... ${streamProgress}%`);
+							} else if (data.type === 'completed') {
+								// Final image received
+								const finalImageData = `data:image/png;base64,${data.image}`;
+								
+								// Save to workspace store
+								const result = await workspaceStore.saveGeneratedImage(
+									persona.id,
+									finalImageData,
+									prompt,
+									table.id
+								);
+								
+								generatedImage = result.imageUrl;
+								partialImage = null;
+								streamProgress = 100;
+								toastStore.success('Image generated successfully!');
+							} else if (data.type === 'error') {
+								throw new Error(data.error || 'Generation failed');
+							}
+						} catch (e) {
+							console.error('Error parsing SSE data:', e);
+						}
+					}
+				}
+			}
 		} catch (error) {
+			console.error('Streaming generation failed:', error);
 			toastStore.error('Failed to generate image. Please try again.');
+			partialImage = null;
+			streamProgress = 0;
 		}
 	}
 
@@ -304,17 +403,35 @@
 			</div>
 
 			<!-- Generated Image Display -->
-			{#if generatedImage}
+			{#if generatedImage || partialImage}
 				<div class="slide-up mb-6 flex w-full max-w-4xl flex-1 items-center justify-center">
 					<div
-						class="max-h-full overflow-hidden rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-gray-700"
+						class="relative max-h-full overflow-hidden rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-gray-700"
 					>
-						<img
-							src={generatedImage}
-							alt="Your submitted workspace design"
-							class="h-auto w-full object-contain"
-							style="max-height: 50vh; max-width: 100%;"
-						/>
+						{#if partialImage && !generatedImage}
+							<!-- Show partial image with blur effect during streaming -->
+							<div class="relative">
+								<img
+									src={partialImage}
+									alt="Generating workspace design..."
+									class="h-auto w-full object-contain blur-sm transition-all duration-500"
+									style="max-height: 50vh; max-width: 100%; filter: blur(2px);"
+								/>
+								<div class="absolute inset-0 flex items-center justify-center bg-black/20">
+									<div class="rounded-lg bg-white/90 px-4 py-2 text-sm font-medium text-gray-800">
+										Generating... {streamProgress}%
+									</div>
+								</div>
+							</div>
+						{:else}
+							<!-- Show final generated image -->
+							<img
+								src={generatedImage}
+								alt="Your submitted workspace design"
+								class="h-auto w-full object-contain"
+								style="max-height: 50vh; max-width: 100%;"
+							/>
+						{/if}
 					</div>
 				</div>
 			{/if}
