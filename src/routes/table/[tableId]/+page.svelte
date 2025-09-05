@@ -109,8 +109,8 @@
 		for (const { field } of persona.promptStructure) {
 			const value = formData[field];
 			const displayValue = value && value.trim() ? value.trim() : '[Not provided yet]';
-			
-			switch(field) {
+
+			switch (field) {
 				case 'environment':
 					fieldsList.push(`- An environment that is ${displayValue}`);
 					break;
@@ -131,7 +131,7 @@
 					break;
 			}
 		}
-		
+
 		personaParts.push(fieldsList.join('\n'));
 		promptParts.push(personaParts.join(''));
 
@@ -162,7 +162,7 @@
 			const value = formData[field];
 			if (value && value.trim()) {
 				// Transform the label into a more natural format
-				switch(field) {
+				switch (field) {
 					case 'environment':
 						filledFields.push(`- An environment that is ${value.trim()}`);
 						break;
@@ -184,7 +184,7 @@
 				}
 			}
 		}
-		
+
 		if (filledFields.length > 0) {
 			personaParts.push(filledFields.join('\n'));
 		}
@@ -193,7 +193,7 @@
 
 		// 4. Technical Requirements
 		promptParts.push(`\n${TECHNICAL_REQUIREMENTS}`);
-		
+
 		return promptParts.join('\n');
 	}
 

@@ -32,7 +32,7 @@ export class R2Storage {
 			}
 
 			console.log('Downloading image from:', imageUrl);
-			
+
 			// Download the image from the source URL
 			const response = await fetch(imageUrl);
 			if (!response.ok) {
@@ -48,12 +48,12 @@ export class R2Storage {
 			const r2Object = await this.platform.env.R2_IMAGES.put(filename, imageBuffer, {
 				httpMetadata: {
 					contentType,
-					cacheControl: 'public, max-age=31536000', // Cache for 1 year
+					cacheControl: 'public, max-age=31536000' // Cache for 1 year
 				},
 				customMetadata: {
 					uploadedAt: new Date().toISOString(),
-					originalUrl: imageUrl,
-				},
+					originalUrl: imageUrl
+				}
 			});
 
 			if (!r2Object) {
@@ -68,13 +68,13 @@ export class R2Storage {
 			return {
 				success: true,
 				url: publicUrl,
-				key: filename,
+				key: filename
 			};
 		} catch (error) {
 			console.error('R2 upload failed:', error);
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : 'Unknown error',
+				error: error instanceof Error ? error.message : 'Unknown error'
 			};
 		}
 	}

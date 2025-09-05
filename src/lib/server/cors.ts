@@ -9,7 +9,7 @@ export const allowedOrigins = [
 export function getCorsHeaders(origin?: string | null): Record<string, string> {
 	// Check if origin is in allowed list, otherwise use wildcard
 	const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : '*';
-	
+
 	return {
 		'Access-Control-Allow-Origin': corsOrigin,
 		'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -20,8 +20,8 @@ export function getCorsHeaders(origin?: string | null): Record<string, string> {
 }
 
 export function createOptionsResponse(origin?: string | null): Response {
-	return new Response(null, { 
+	return new Response(null, {
 		headers: getCorsHeaders(origin),
-		status: 204 
+		status: 204
 	});
 }

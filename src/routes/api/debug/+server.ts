@@ -4,7 +4,7 @@ import { getCorsHeaders } from '$lib/server/cors';
 
 export async function GET(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
-	
+
 	try {
 		const debugInfo = {
 			timestamp: new Date().toISOString(),
@@ -34,10 +34,13 @@ export async function GET(event: RequestEvent) {
 		return json(debugInfo, { headers: corsHeaders });
 	} catch (error) {
 		console.error('Debug endpoint error:', error);
-		return json({
-			error: 'Debug endpoint failed',
-			debug: error instanceof Error ? error.message : String(error)
-		}, { status: 500, headers: corsHeaders });
+		return json(
+			{
+				error: 'Debug endpoint failed',
+				debug: error instanceof Error ? error.message : String(error)
+			},
+			{ status: 500, headers: corsHeaders }
+		);
 	}
 }
 

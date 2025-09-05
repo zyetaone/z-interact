@@ -15,9 +15,16 @@ type Platform = { env?: Record<string, any> } | undefined;
  */
 export function getDb(platform?: Platform): DatabaseConnection {
 	const isCloudflare = typeof process === 'undefined';
-	const isDevelopment = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
+	const isDevelopment =
+		typeof process !== 'undefined' &&
+		(process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
 
-	console.log('Database connection attempt:', { isCloudflare, isDevelopment, hasPlatform: !!platform, hasD1Binding: !!platform?.env?.z_interact_db });
+	console.log('Database connection attempt:', {
+		isCloudflare,
+		isDevelopment,
+		hasPlatform: !!platform,
+		hasD1Binding: !!platform?.env?.z_interact_db
+	});
 
 	// Cloudflare Pages/Workers - MUST use D1 binding
 	if (isCloudflare) {

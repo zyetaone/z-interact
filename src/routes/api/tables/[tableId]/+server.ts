@@ -22,10 +22,13 @@ export async function DELETE(event: RequestEvent) {
 
 		console.log(`✅ Deleted images for table ${tableId}`);
 
-		return json({
-			message: `Images for table ${tableId} deleted successfully`,
-			tableId: tableId
-		}, { headers: corsHeaders });
+		return json(
+			{
+				message: `Images for table ${tableId} deleted successfully`,
+				tableId: tableId
+			},
+			{ headers: corsHeaders }
+		);
 	} catch (error) {
 		console.error('❌ Failed to delete images:', error);
 		return json({ error: 'Failed to delete images' }, { status: 500, headers: corsHeaders });

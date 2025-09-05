@@ -17,10 +17,13 @@ export async function GET(event: RequestEvent) {
 		return json(allImages, { headers: corsHeaders });
 	} catch (error) {
 		console.error('Failed to fetch images:', error);
-		return json({ 
-			error: 'Failed to fetch images', 
-			debug: error instanceof Error ? error.message : String(error) 
-		}, { status: 500, headers: corsHeaders });
+		return json(
+			{
+				error: 'Failed to fetch images',
+				debug: error instanceof Error ? error.message : String(error)
+			},
+			{ status: 500, headers: corsHeaders }
+		);
 	}
 }
 
@@ -30,9 +33,12 @@ export async function POST(event: RequestEvent) {
 		console.log('POST /api/images started');
 		const { request, platform } = event;
 		console.log('Platform available:', !!platform, 'D1 binding:', !!platform?.env?.z_interact_db);
-		
+
 		const body = await request.json();
-		console.log('Request body parsed:', { ...body, prompt: body.prompt ? '[truncated]' : undefined });
+		console.log('Request body parsed:', {
+			...body,
+			prompt: body.prompt ? '[truncated]' : undefined
+		});
 
 		// Check if this is an image generation request or just saving an existing image
 		const isGenerationRequest = body.prompt && body.personaId && !body.imageUrl;
@@ -78,16 +84,16 @@ export async function POST(event: RequestEvent) {
 					size: '1024x1024',
 					quality: 'standard'
 				});
-				
+
 				console.log('Image generated, temporary URL:', result.imageUrl);
-				
+
 				// Upload to R2 storage for permanent storage
 				const r2Storage = createR2Storage(platform);
 				const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
-				
+
 				console.log('Uploading to R2 storage...');
 				const uploadResult = await r2Storage.uploadImageFromUrl(result.imageUrl, filename);
-				
+
 				if (uploadResult.success && uploadResult.url) {
 					imageUrl = uploadResult.url;
 					console.log('Image uploaded to R2 successfully:', imageUrl);
@@ -97,10 +103,13 @@ export async function POST(event: RequestEvent) {
 				}
 			} catch (error) {
 				console.error('Failed to generate image:', error);
-				return json({ 
-					error: 'Failed to generate image',
-					debug: error instanceof Error ? error.message : String(error)
-				}, { status: 500, headers: corsHeaders });
+				return json(
+					{
+						error: 'Failed to generate image',
+						debug: error instanceof Error ? error.message : String(error)
+					},
+					{ status: 500, headers: corsHeaders }
+				);
 			}
 		}
 
@@ -113,7 +122,9 @@ export async function POST(event: RequestEvent) {
 			id: crypto.randomUUID(),
 			tableId: validatedBody.tableId || null,
 			personaId: validatedBody.personaId,
-			personaTitle: validatedBody.personaId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()), // Convert persona ID to title format
+			personaTitle: validatedBody.personaId
+				.replace('-', ' ')
+				.replace(/\b\w/g, (l) => l.toUpperCase()), // Convert persona ID to title format
 			sessionId: null,
 			participantId: null,
 			imageUrl: imageUrl as string,
@@ -133,19 +144,27 @@ export async function POST(event: RequestEvent) {
 		// Return format that matches the expected interface
 		if (isGenerationRequest) {
 			// Return format expected by generateImage calls
-			return json({
-				imageUrl: imageUrl as string,
-				personaId: body.personaId,
-				prompt: body.prompt
-			}, { headers: corsHeaders });
+			return json(
+				{
+					imageUrl: imageUrl as string,
+					personaId: body.personaId,
+					prompt: body.prompt
+				},
+				{ headers: corsHeaders }
+			);
 		} else {
 			// For save requests, also try to upload to R2 for persistence
-			if (isSaveRequest && imageUrl && typeof imageUrl === 'string' && !imageUrl.includes(platform?.env?.R2_PUBLIC_URL || '')) {
+			if (
+				isSaveRequest &&
+				imageUrl &&
+				typeof imageUrl === 'string' &&
+				!imageUrl.includes(platform?.env?.R2_PUBLIC_URL || '')
+			) {
 				try {
 					const r2Storage = createR2Storage(platform);
 					const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
 					const uploadResult = await r2Storage.uploadImageFromUrl(imageUrl, filename);
-					
+
 					if (uploadResult.success && uploadResult.url) {
 						console.log('Saved image also uploaded to R2:', uploadResult.url);
 						// Note: We don't update the imageUrl here since the image is already saved to DB
@@ -156,18 +175,21 @@ export async function POST(event: RequestEvent) {
 					// Continue with the original URL - this is not a critical failure
 				}
 			}
-			
+
 			// Return format expected by lockImage calls
 			return json({ image: newImage }, { headers: corsHeaders });
 		}
 	} catch (error) {
 		console.error('Failed to process image request:', error);
-		return json({ 
-			error: 'Failed to process image request',
-			debug: error instanceof Error ? error.message : String(error),
-			platform: !!event.platform,
-			hasDb: !!(event.platform?.env?.z_interact_db)
-		}, { status: 500, headers: corsHeaders });
+		return json(
+			{
+				error: 'Failed to process image request',
+				debug: error instanceof Error ? error.message : String(error),
+				platform: !!event.platform,
+				hasDb: !!event.platform?.env?.z_interact_db
+			},
+			{ status: 500, headers: corsHeaders }
+		);
 	}
 }
 
@@ -176,16 +198,16 @@ export async function DELETE(event: RequestEvent) {
 	try {
 		console.log('Clearing all images from database and R2 storage...');
 		const database = getDb(event.platform);
-		
+
 		// First, get all images to delete from R2 storage
 		const allImages = await database.select().from(images);
 		console.log(`Found ${allImages.length} images to delete`);
-		
+
 		// Delete images from R2 storage
 		if (allImages.length > 0) {
 			const r2Storage = createR2Storage(event.platform);
 			let deletedFromR2 = 0;
-			
+
 			for (const image of allImages) {
 				// Check if this is an R2 URL that we should delete
 				const r2PublicUrl = event.platform?.env?.R2_PUBLIC_URL || '';
@@ -194,7 +216,7 @@ export async function DELETE(event: RequestEvent) {
 						// Extract filename from URL
 						const urlParts = image.imageUrl.split('/');
 						const filename = urlParts.slice(-3).join('/'); // images/persona/filename.png
-						
+
 						const deleted = await r2Storage.deleteImage(filename);
 						if (deleted) {
 							deletedFromR2++;
@@ -204,28 +226,36 @@ export async function DELETE(event: RequestEvent) {
 					}
 				}
 			}
-			
+
 			console.log(`Deleted ${deletedFromR2} images from R2 storage`);
 		}
-		
+
 		// Then delete all records from database
 		await database.delete(images);
 		console.log('All image records deleted from database');
-		
-		return json({ 
-			message: 'All images cleared',
-			deletedFromDatabase: allImages.length,
-			deletedFromR2: allImages.filter(img => 
-				img.imageUrl && event.platform?.env?.R2_PUBLIC_URL && 
-				img.imageUrl.includes(event.platform.env.R2_PUBLIC_URL)
-			).length
-		}, { headers: corsHeaders });
+
+		return json(
+			{
+				message: 'All images cleared',
+				deletedFromDatabase: allImages.length,
+				deletedFromR2: allImages.filter(
+					(img) =>
+						img.imageUrl &&
+						event.platform?.env?.R2_PUBLIC_URL &&
+						img.imageUrl.includes(event.platform.env.R2_PUBLIC_URL)
+				).length
+			},
+			{ headers: corsHeaders }
+		);
 	} catch (error) {
 		console.error('Failed to clear images:', error);
-		return json({ 
-			error: 'Failed to clear images',
-			debug: error instanceof Error ? error.message : String(error)
-		}, { status: 500, headers: corsHeaders });
+		return json(
+			{
+				error: 'Failed to clear images',
+				debug: error instanceof Error ? error.message : String(error)
+			},
+			{ status: 500, headers: corsHeaders }
+		);
 	}
 }
 
