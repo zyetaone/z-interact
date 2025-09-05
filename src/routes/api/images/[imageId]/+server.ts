@@ -3,6 +3,8 @@ import { images } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import { getCorsHeaders, createOptionsResponse } from '$lib/server/cors';
+import { createR2Storage } from '$lib/server/r2-storage';
+import { json } from '@sveltejs/kit';
 
 export async function GET(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
@@ -114,6 +116,80 @@ export async function GET(event: RequestEvent) {
 			status: 500,
 			headers: { 'Content-Type': 'application/json', ...corsHeaders }
 		});
+	}
+}
+
+export async function DELETE(event: RequestEvent) {
+	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
+	try {
+		const { params } = event;
+		const imageId = params.imageId;
+
+		if (!imageId) {
+			return json({ error: 'Image ID is required' }, { 
+				status: 400, 
+				headers: corsHeaders 
+			});
+		}
+
+		console.log(`Deleting image: ${imageId}`);
+		const database = getDb(event.platform);
+
+		// First, get the image record to check if it's stored in R2
+		const [imageRecord] = await database
+			.select()
+			.from(images)
+			.where(eq(images.id, imageId))
+			.limit(1);
+
+		if (!imageRecord) {
+			return json({ error: 'Image not found' }, { 
+				status: 404, 
+				headers: corsHeaders 
+			});
+		}
+
+		// Delete from R2 storage if it's an R2 URL
+		let deletedFromR2 = false;
+		const r2PublicUrl = event.platform?.env?.R2_PUBLIC_URL || '';
+		
+		if (imageRecord.imageUrl && r2PublicUrl && imageRecord.imageUrl.includes(r2PublicUrl)) {
+			try {
+				console.log('Deleting from R2 storage:', imageRecord.imageUrl);
+				const r2Storage = createR2Storage(event.platform);
+				
+				// Extract filename from URL
+				const urlParts = imageRecord.imageUrl.split('/');
+				const filename = urlParts.slice(-3).join('/'); // images/persona/filename.png
+				
+				deletedFromR2 = await r2Storage.deleteImage(filename);
+				console.log(`R2 deletion result: ${deletedFromR2}`);
+			} catch (error) {
+				console.warn('Failed to delete from R2 storage:', error);
+				// Continue with database deletion even if R2 fails
+			}
+		}
+
+		// Delete from database
+		const deleteResult = await database
+			.delete(images)
+			.where(eq(images.id, imageId));
+
+		console.log('Image deleted from database');
+
+		return json({ 
+			message: 'Image deleted successfully',
+			id: imageId,
+			deletedFromR2,
+			deletedFromDatabase: true
+		}, { headers: corsHeaders });
+
+	} catch (error) {
+		console.error('Failed to delete image:', error);
+		return json({ 
+			error: 'Failed to delete image',
+			debug: error instanceof Error ? error.message : String(error)
+		}, { status: 500, headers: corsHeaders });
 	}
 }
 

@@ -174,9 +174,52 @@ export async function POST(event: RequestEvent) {
 export async function DELETE(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
+		console.log('Clearing all images from database and R2 storage...');
 		const database = getDb(event.platform);
+		
+		// First, get all images to delete from R2 storage
+		const allImages = await database.select().from(images);
+		console.log(`Found ${allImages.length} images to delete`);
+		
+		// Delete images from R2 storage
+		if (allImages.length > 0) {
+			const r2Storage = createR2Storage(event.platform);
+			let deletedFromR2 = 0;
+			
+			for (const image of allImages) {
+				// Check if this is an R2 URL that we should delete
+				const r2PublicUrl = event.platform?.env?.R2_PUBLIC_URL || '';
+				if (image.imageUrl && r2PublicUrl && image.imageUrl.includes(r2PublicUrl)) {
+					try {
+						// Extract filename from URL
+						const urlParts = image.imageUrl.split('/');
+						const filename = urlParts.slice(-3).join('/'); // images/persona/filename.png
+						
+						const deleted = await r2Storage.deleteImage(filename);
+						if (deleted) {
+							deletedFromR2++;
+						}
+					} catch (error) {
+						console.warn(`Failed to delete image from R2: ${image.imageUrl}`, error);
+					}
+				}
+			}
+			
+			console.log(`Deleted ${deletedFromR2} images from R2 storage`);
+		}
+		
+		// Then delete all records from database
 		await database.delete(images);
-		return json({ message: 'All images cleared' }, { headers: corsHeaders });
+		console.log('All image records deleted from database');
+		
+		return json({ 
+			message: 'All images cleared',
+			deletedFromDatabase: allImages.length,
+			deletedFromR2: allImages.filter(img => 
+				img.imageUrl && event.platform?.env?.R2_PUBLIC_URL && 
+				img.imageUrl.includes(event.platform.env.R2_PUBLIC_URL)
+			).length
+		}, { headers: corsHeaders });
 	} catch (error) {
 		console.error('Failed to clear images:', error);
 		return json({ 
