@@ -5,11 +5,34 @@
 	import QRCodeGenerator from '$lib/components/ui/qr-code-generator.svelte';
 	import { QRModal } from '$lib/components/ui';
 	import { browser } from '$app/environment';
+	import { onMount, onDestroy } from 'svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	const images = $state(data.images || []);
+	let images = $state(data.images || []);
+	let refreshInterval: NodeJS.Timeout | null = null;
+
+	// Set up 30-second auto-refresh for database images
+	onMount(() => {
+		refreshInterval = setInterval(async () => {
+			try {
+				const response = await fetch('/api/images');
+				if (response.ok) {
+					const newImages = await response.json();
+					images = newImages;
+				}
+			} catch (error) {
+				console.error('Failed to refresh images:', error);
+			}
+		}, 30000); // 30 seconds
+	});
+
+	onDestroy(() => {
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
+		}
+	});
 
 	// Flatten all images for grid layout
 	const allImages = $derived(

@@ -80,6 +80,65 @@ export class R2Storage {
 	}
 
 	/**
+	 * Upload an image to R2 storage from base64 data
+	 * @param base64Data - The base64 encoded image data (without data:image prefix)
+	 * @param filename - The desired filename for the stored image
+	 * @returns R2UploadResult with the permanent URL
+	 */
+	async uploadImageFromBase64(base64Data: string, filename: string): Promise<R2UploadResult> {
+		try {
+			// Check if R2 is configured
+			if (!this.platform?.env?.R2_IMAGES) {
+				throw new Error('R2_IMAGES bucket not configured');
+			}
+
+			if (!this.platform?.env?.R2_PUBLIC_URL) {
+				throw new Error('R2_PUBLIC_URL not configured');
+			}
+
+			console.log('Converting base64 to buffer for:', filename);
+
+			// Convert base64 to buffer
+			const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+			console.log('Uploading to R2 with filename:', filename);
+
+			// Upload to R2 bucket
+			const r2Object = await this.platform.env.R2_IMAGES.put(filename, imageBuffer, {
+				httpMetadata: {
+					contentType: 'image/png',
+					cacheControl: 'public, max-age=31536000' // Cache for 1 year
+				},
+				customMetadata: {
+					uploadedAt: new Date().toISOString(),
+					source: 'base64'
+				}
+			});
+
+			if (!r2Object) {
+				throw new Error('Failed to upload to R2 bucket');
+			}
+
+			// Construct the public URL
+			const publicUrl = `${this.platform.env.R2_PUBLIC_URL}/${filename}`;
+
+			console.log('Image uploaded successfully to:', publicUrl);
+
+			return {
+				success: true,
+				url: publicUrl,
+				key: filename
+			};
+		} catch (error) {
+			console.error('R2 upload failed:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
 	 * Delete an image from R2 storage
 	 * @param filename - The filename/key to delete
 	 */

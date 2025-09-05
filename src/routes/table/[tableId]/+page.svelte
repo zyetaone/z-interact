@@ -302,13 +302,19 @@
 								streamProgress = data.index * 25; // Estimate progress
 								toastStore.info(`Generating... ${streamProgress}%`);
 							} else if (data.type === 'completed') {
-								// Final image received
+								// Final image received - convert to data URL
 								const finalImageData = `data:image/png;base64,${data.image}`;
 
-								// Save to workspace store using existing method
-								const result = await workspaceStore.generateImage(persona.id, prompt, table.id);
+								// Save the already generated image to workspace store
+								await workspaceStore.lockImage({
+									tableId: table.id,
+									personaId: persona.id,
+									imageUrl: finalImageData,
+									prompt: prompt,
+									lockedAt: new Date().toISOString()
+								});
 
-								generatedImage = result.imageUrl;
+								generatedImage = finalImageData;
 								partialImage = null;
 								streamProgress = 100;
 								toastStore.success('Image generated successfully!');

@@ -37,8 +37,10 @@ export async function POST(event: RequestEvent) {
 					// Start image generation with streaming
 					const imageStream = imageGenerator.generateImageStream({
 						prompt: validatedBody.prompt,
-						size: '1792x1024', // Landscape format
-						quality: 'hd',
+						size: '1536x1024', // Landscape format
+						quality: 'high',
+						background: 'auto',
+						partial_images: 2, // Generate 2 partial images during streaming
 						stream: true
 					});
 

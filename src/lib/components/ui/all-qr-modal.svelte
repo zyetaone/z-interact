@@ -27,11 +27,11 @@
 			let qrCodeSections = '';
 			// Get all canvas elements (QR codes are rendered as canvas)
 			const qrCanvases = document.querySelectorAll('.all-qr-modal canvas');
-			
+
 			if (qrCanvases.length === 0) {
 				// If no canvas elements found, try img elements
 				const qrImages = document.querySelectorAll('.all-qr-modal img');
-				
+
 				tables.forEach((table, index) => {
 					const qrImg = qrImages[index] as HTMLImageElement;
 					const url = `${baseUrl}/table/${table.id}`;
@@ -77,8 +77,8 @@
 				return;
 			}
 
-		// Write content to the new window
-		printWindow.document.write(`
+			// Write content to the new window
+			printWindow.document.write(`
 			<!DOCTYPE html>
 			<html>
 			<head>
@@ -166,7 +166,7 @@
 			</html>
 		`);
 
-		printWindow.document.close();
+			printWindow.document.close();
 
 			// Wait for content to load, then print and close
 			printWindow.onload = () => {

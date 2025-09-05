@@ -3,8 +3,10 @@ import { env } from '../env';
 
 export interface ImageGenerationOptions {
 	prompt: string;
-	size?: '1024x1024' | '1792x1024' | '1024x1792';
-	quality?: 'standard' | 'hd';
+	size?: '1536x1024' | '1024x1536' | 'auto';
+	quality?: 'high' | 'medium' | 'low' | 'auto';
+	background?: 'transparent' | 'opaque' | 'auto';
+	partial_images?: number;
 	response_format?: 'url' | 'b64_json';
 	stream?: boolean;
 }
@@ -66,16 +68,17 @@ export class ImageGenerator {
 		}
 
 		try {
-			// Note: Streaming is not yet available in the current OpenAI SDK
-			// For now, we'll use standard generation and simulate streaming
+			// gpt-image-1 supports native streaming
 			const response = await this.client.images.generate({
-				model: 'dall-e-3',
+				model: 'gpt-image-1',
 				prompt: options.prompt,
 				n: 1,
-				size: options.size || '1792x1024', // Landscape format for workspaces
-				quality: options.quality || 'hd',
-				response_format: 'b64_json'
-			});
+				size: options.size || '1536x1024', // Landscape format for workspaces
+				quality: options.quality || 'high',
+				background: options.background || 'auto',
+				partial_images: options.partial_images || 0,
+				stream: true
+			} as any);
 
 			// Simulate streaming with a single completed event
 			if (response.data && response.data[0]) {
@@ -106,13 +109,13 @@ export class ImageGenerator {
 		}
 
 		const response = await this.client.images.generate({
-			model: 'dall-e-3',
+			model: 'gpt-image-1',
 			prompt: options.prompt,
 			n: 1,
-			size: options.size || '1792x1024', // Landscape format for workspaces
-			quality: options.quality || 'hd',
-			response_format: options.response_format || 'url'
-		});
+			size: options.size || '1536x1024', // Landscape format for workspaces
+			quality: options.quality || 'high',
+			background: options.background || 'auto'
+		} as any);
 
 		if (!response.data || !response.data[0]) {
 			throw new Error('No image data received from OpenAI');
@@ -120,24 +123,24 @@ export class ImageGenerator {
 
 		const data = response.data[0];
 
+		// gpt-image-1 always returns b64_json
 		return {
-			imageUrl: data.url,
 			b64_json: data.b64_json,
 			provider: 'openai',
 			prompt: options.prompt,
-			revisedPrompt: data.revised_prompt,
 			metadata: {
-				model: 'dall-e-3',
-				size: options.size || '1792x1024',
-				quality: options.quality || 'hd'
+				model: 'gpt-image-1',
+				size: options.size || '1536x1024',
+				quality: options.quality || 'high',
+				background: options.background || 'auto'
 			}
 		};
 	}
 
 	private generateFallback(prompt: string): ImageGenerationResult {
 		// Fallback to Picsum if OpenAI fails
-		// Using 1792x1024 to match our default landscape size
-		const imageUrl = `https://picsum.photos/1792/1024?random=${Date.now()}`;
+		// Using 1536x1024 to match our default landscape size
+		const imageUrl = `https://picsum.photos/1536/1024?random=${Date.now()}`;
 
 		return {
 			imageUrl,

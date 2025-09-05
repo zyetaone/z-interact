@@ -11,6 +11,7 @@
 	import { AllQRModal, Button, QRModal, PersonaModal, ThemeToggle } from '$lib/components/ui';
 	import { copyToClipboard } from '$lib/utils';
 	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 
 	let baseUrl = $state('');
 	let selectedTableNumber = $state(1);
@@ -18,6 +19,7 @@
 	let showAllQRModal = $state(false);
 	let showPersonaModal = $state(false);
 	let selectedPersona = $state<Persona | null>(null);
+	let refreshInterval: NodeJS.Timeout | null = null;
 
 	// Use reactive global config directly - no need for local copies
 	const editablePersonas = globalConfig.personas;
@@ -29,6 +31,23 @@
 		if (typeof window !== 'undefined') {
 			baseUrl = window.location.origin;
 			workspaceStore.initialize();
+		}
+	});
+
+	// Set up 30-second auto-refresh for database images
+	onMount(() => {
+		refreshInterval = setInterval(async () => {
+			try {
+				await workspaceStore.refreshImages();
+			} catch (error) {
+				console.error('Failed to refresh images:', error);
+			}
+		}, 30000); // 30 seconds
+	});
+
+	onDestroy(() => {
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
 		}
 	});
 

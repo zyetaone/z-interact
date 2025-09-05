@@ -73,28 +73,34 @@ export async function POST(event: RequestEvent) {
 			throw error;
 		}
 
-		let imageUrl = 'imageUrl' in validatedBody ? validatedBody.imageUrl : undefined;
+		let imageUrl: string | undefined =
+			'imageUrl' in validatedBody ? (validatedBody.imageUrl as string) : undefined;
 
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
 			try {
-				console.log('Generating image with OpenAI SDK (DALL-E 3)...');
+				console.log('Generating image with OpenAI SDK (gpt-image-1)...');
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
-					size: '1792x1024', // Landscape format for workspace visualization
-					quality: 'hd', // High quality for better workspace details
-					response_format: 'url' // Get URL for R2 upload
+					size: '1536x1024', // Landscape format for workspace visualization
+					quality: 'high', // High quality for better workspace details
+					background: 'auto' // Let model determine best background
 				});
 
 				console.log('Image generated:', {
 					provider: result.provider,
-					hasUrl: !!result.imageUrl,
+					hasBase64: !!result.b64_json,
 					model: result.metadata?.model
 				});
 
-				// Check if we got an image URL
-				if (!result.imageUrl) {
-					throw new Error('No image URL returned from generator');
+				// gpt-image-1 returns b64_json, convert to data URL
+				let imageUrl: string;
+				if (result.b64_json) {
+					imageUrl = `data:image/png;base64,${result.b64_json}`;
+				} else if (result.imageUrl) {
+					imageUrl = result.imageUrl;
+				} else {
+					throw new Error('No image data returned from generator');
 				}
 
 				// Upload to R2 storage for permanent storage
@@ -102,14 +108,16 @@ export async function POST(event: RequestEvent) {
 				const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
 
 				console.log('Uploading to R2 storage...');
-				const uploadResult = await r2Storage.uploadImageFromUrl(result.imageUrl, filename);
+				const uploadResult = result.b64_json
+					? await r2Storage.uploadImageFromBase64(result.b64_json, filename)
+					: await r2Storage.uploadImageFromUrl(imageUrl, filename);
 
 				if (uploadResult.success && uploadResult.url) {
 					imageUrl = uploadResult.url;
 					console.log('Image uploaded to R2 successfully:', imageUrl);
 				} else {
-					console.warn('R2 upload failed, using temporary URL:', uploadResult.error);
-					imageUrl = result.imageUrl; // Fallback to temporary URL
+					console.warn('R2 upload failed, using data URL:', uploadResult.error);
+					// imageUrl already set to data URL above
 				}
 			} catch (error) {
 				console.error('Failed to generate image:', error);
