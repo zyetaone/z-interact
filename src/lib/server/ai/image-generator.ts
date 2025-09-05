@@ -117,7 +117,7 @@ export class ImageGenerator {
 		if (!response.data || !response.data[0]) {
 			throw new Error('No image data received from OpenAI');
 		}
-		
+
 		const data = response.data[0];
 
 		return {

@@ -113,7 +113,10 @@
 
 		for (const line of lines) {
 			// Scene setting (starts with "Interior design visualization" or "Architectural visualization")
-			if (line.startsWith('Interior design visualization') || line.startsWith('Architectural visualization:')) {
+			if (
+				line.startsWith('Interior design visualization') ||
+				line.startsWith('Architectural visualization:')
+			) {
 				sections.push({
 					type: 'scene',
 					content: line

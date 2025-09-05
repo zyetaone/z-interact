@@ -24,7 +24,7 @@ export interface PromptFieldConfig {
 export const SCENE_SETTING = `Interior design visualization, hyperreal: A 2030 corporate workspace interior. Single open floor with floor-to-ceiling windows overlooking the cityscape.`;
 
 // Rendering specifications - how to visualize (consolidated)
-export const RENDERING_SPECS = `Render specifications: Photorealistic architectural photography style. Wide-angle perspective showing complete workspace. Depth of field <Important>Clean visual without any text, labels, logos, or watermarks. Focus on architectural details and spatial flow. Follow color palette specified</Important>`;
+export const RENDERING_SPECS = `Render specifications: Hyperrealistic interior photography, ultra-detailed textures, ray-traced global illumination. Wide-angle perspective showing complete workspace. Cinematic depth of field, volumetric lighting. <Important>Clean visual without any text, labels, logos, or watermarks. Focus on materiality, furniture details, and atmospheric lighting. Strictly follow the specified color palette and atmosphere.</Important>`;
 
 // Export old names for backward compatibility (will be removed later)
 export const MASTER_SYSTEM_PROMPT = SCENE_SETTING;

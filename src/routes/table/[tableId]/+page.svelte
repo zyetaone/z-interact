@@ -306,11 +306,7 @@
 								const finalImageData = `data:image/png;base64,${data.image}`;
 
 								// Save to workspace store using existing method
-								const result = await workspaceStore.generateImage(
-									persona.id,
-									prompt,
-									table.id
-								);
+								const result = await workspaceStore.generateImage(persona.id, prompt, table.id);
 
 								generatedImage = result.imageUrl;
 								partialImage = null;
