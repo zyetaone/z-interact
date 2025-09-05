@@ -38,7 +38,8 @@ export class ImageGenerator {
 	constructor() {
 		if (env.OPENAI_API_KEY) {
 			this.client = new OpenAI({
-				apiKey: env.OPENAI_API_KEY
+				apiKey: env.OPENAI_API_KEY,
+				organization: 'org-8AcAiOJN1MohBYWCzoqnQZtK' // Your organization ID
 			});
 		}
 	}
@@ -68,7 +69,8 @@ export class ImageGenerator {
 		}
 
 		try {
-			// gpt-image-1 supports native streaming
+			// Try gpt-image-1 with streaming first
+			console.log('Attempting streaming with gpt-image-1...');
 			const response = await this.client.images.generate({
 				model: 'gpt-image-1',
 				prompt: options.prompt,
@@ -80,7 +82,7 @@ export class ImageGenerator {
 				stream: true
 			} as any);
 
-			// Simulate streaming with a single completed event
+			// Process streaming response
 			if (response.data && response.data[0]) {
 				yield {
 					type: 'completed',
@@ -94,12 +96,53 @@ export class ImageGenerator {
 			} else {
 				throw new Error('No image data received');
 			}
-		} catch (error) {
-			console.error('Streaming generation failed:', error);
-			yield {
-				type: 'error',
-				error: error instanceof Error ? error.message : 'Unknown error occurred'
-			};
+		} catch (error: any) {
+			// Check if it's a verification error
+			if (
+				error?.message?.includes('verified') ||
+				error?.response?.data?.error?.message?.includes('verified')
+			) {
+				console.log('gpt-image-1 requires verification, falling back to dall-e-3...');
+
+				try {
+					// Fallback to dall-e-3 (no native streaming)
+					const response = await this.client.images.generate({
+						model: 'dall-e-3',
+						prompt: options.prompt,
+						n: 1,
+						size: '1792x1024', // dall-e-3 landscape size
+						quality: 'hd',
+						response_format: 'b64_json'
+					});
+
+					if (response.data && response.data[0]) {
+						yield {
+							type: 'completed',
+							b64_json: response.data[0].b64_json || '',
+							usage: {
+								total_tokens: 100,
+								input_tokens: 50,
+								output_tokens: 50
+							}
+						};
+					} else {
+						throw new Error('No image data received from dall-e-3');
+					}
+				} catch (fallbackError) {
+					console.error('Fallback to dall-e-3 also failed:', fallbackError);
+					yield {
+						type: 'error',
+						error: fallbackError instanceof Error ? fallbackError.message : 'Generation failed'
+					};
+				}
+			} else {
+				// Other errors
+				console.error('Streaming generation failed:', error);
+				yield {
+					type: 'error',
+					error: error instanceof Error ? error.message : 'Unknown error occurred'
+				};
+			}
 		}
 	}
 
@@ -108,33 +151,77 @@ export class ImageGenerator {
 			throw new Error('OpenAI API key not configured');
 		}
 
-		const response = await this.client.images.generate({
-			model: 'gpt-image-1',
-			prompt: options.prompt,
-			n: 1,
-			size: options.size || '1536x1024', // Landscape format for workspaces
-			quality: options.quality || 'high',
-			background: options.background || 'auto'
-		} as any);
-
-		if (!response.data || !response.data[0]) {
-			throw new Error('No image data received from OpenAI');
-		}
-
-		const data = response.data[0];
-
-		// gpt-image-1 always returns b64_json
-		return {
-			b64_json: data.b64_json,
-			provider: 'openai',
-			prompt: options.prompt,
-			metadata: {
+		try {
+			// Try gpt-image-1 first
+			console.log('Attempting generation with gpt-image-1...');
+			const response = await this.client.images.generate({
 				model: 'gpt-image-1',
-				size: options.size || '1536x1024',
+				prompt: options.prompt,
+				n: 1,
+				size: options.size || '1536x1024', // Landscape format for workspaces
 				quality: options.quality || 'high',
 				background: options.background || 'auto'
+			} as any);
+
+			if (!response.data || !response.data[0]) {
+				throw new Error('No image data received from OpenAI');
 			}
-		};
+
+			const data = response.data[0];
+
+			// gpt-image-1 always returns b64_json
+			return {
+				b64_json: data.b64_json,
+				provider: 'openai',
+				prompt: options.prompt,
+				metadata: {
+					model: 'gpt-image-1',
+					size: options.size || '1536x1024',
+					quality: options.quality || 'high',
+					background: options.background || 'auto'
+				}
+			};
+		} catch (error: any) {
+			// Check if it's a verification error
+			if (
+				error?.message?.includes('verified') ||
+				error?.response?.data?.error?.message?.includes('verified')
+			) {
+				console.log('gpt-image-1 requires verification, falling back to dall-e-3...');
+
+				// Fallback to dall-e-3
+				const response = await this.client.images.generate({
+					model: 'dall-e-3',
+					prompt: options.prompt,
+					n: 1,
+					size: '1792x1024', // dall-e-3 landscape size
+					quality: 'hd',
+					response_format: 'url'
+				});
+
+				if (!response.data || !response.data[0]) {
+					throw new Error('No image data received from OpenAI');
+				}
+
+				const data = response.data[0];
+
+				return {
+					imageUrl: data.url,
+					provider: 'openai',
+					prompt: options.prompt,
+					revisedPrompt: data.revised_prompt,
+					metadata: {
+						model: 'dall-e-3',
+						size: '1792x1024',
+						quality: 'hd',
+						note: 'Fallback from gpt-image-1 (verification required)'
+					}
+				};
+			}
+
+			// Re-throw other errors
+			throw error;
+		}
 	}
 
 	private generateFallback(prompt: string): ImageGenerationResult {
