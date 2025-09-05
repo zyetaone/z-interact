@@ -46,9 +46,16 @@
 
 	// Form completion progress
 	const formProgress = $derived(() => {
-		const filledFields = Object.values(formData).filter((value) => value.length >= 10).length;
-		const totalFields = Object.keys(formData).length;
-		return Math.round((filledFields / totalFields) * 100);
+		if (!persona) return 0;
+		
+		// Only count the fields that are actually shown in the form
+		const activeFields = persona.promptStructure.map(config => config.field);
+		const filledFields = activeFields.filter(field => {
+			const value = formData[field as keyof PromptFields];
+			return value && value.trim().length >= 10;
+		}).length;
+		
+		return Math.round((filledFields / activeFields.length) * 100);
 	});
 
 	const progressValue = $derived(formProgress());
