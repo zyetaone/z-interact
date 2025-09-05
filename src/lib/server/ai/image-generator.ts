@@ -69,24 +69,39 @@ export class ImageGenerator {
 		}
 
 		try {
-			// Use gpt-image-1 with streaming (now verified!)
-			console.log('Streaming with gpt-image-1 (verified)...');
+			// Note: OpenAI SDK doesn't support true streaming for images yet
+			// We'll simulate streaming with a standard call
+			console.log('Generating with gpt-image-1 (simulated streaming)...');
+			
+			// Make a standard generation call
 			const response = await this.client.images.generate({
 				model: 'gpt-image-1',
 				prompt: options.prompt,
 				n: 1,
 				size: options.size || '1024x1024', // Square format - most cost effective
 				quality: options.quality || 'low', // Low quality for $0.01 per image
-				background: options.background || 'auto',
-				partial_images: options.partial_images || 2, // Enable partial images
-				stream: true
+				background: options.background || 'auto'
+				// Note: stream and partial_images not supported in current SDK
 			} as any);
 
-			// Process streaming response
-			if (response.data && response.data[0]) {
+			// Check if we got image data
+			if (response.data && response.data[0] && response.data[0].b64_json) {
+				const imageData = response.data[0].b64_json;
+				
+				// Simulate partial images for better UX
+				if (options.partial_images && options.partial_images > 0) {
+					// Send a progress event
+					yield {
+						type: 'partial_image',
+						b64_json: imageData.substring(0, 100), // Small preview
+						partial_image_index: 0
+					};
+				}
+				
+				// Send the complete image
 				yield {
 					type: 'completed',
-					b64_json: response.data[0].b64_json || '',
+					b64_json: imageData,
 					usage: {
 						total_tokens: 100,
 						input_tokens: 50,
@@ -94,11 +109,16 @@ export class ImageGenerator {
 					}
 				};
 			} else {
-				throw new Error('No image data received');
+				throw new Error('No image data received from gpt-image-1');
 			}
 		} catch (error: any) {
-			// Check if it's a verification error
-			if (
+			console.error('Streaming generation error:', error?.message || error);
+			
+			// Check for billing issues
+			if (error?.message?.includes('billing') || error?.message?.includes('limit')) {
+				console.error('Billing limit reached - falling back to dall-e-3');
+				// Try dall-e-3 as fallback
+			} else if (
 				error?.message?.includes('verified') ||
 				error?.response?.data?.error?.message?.includes('verified')
 			) {
@@ -185,8 +205,12 @@ export class ImageGenerator {
 				}
 			};
 		} catch (error: any) {
-			// Only fall back for actual errors, not verification
-			if (
+			console.error('Generation error:', error?.message || error);
+			
+			// Check for billing issues first
+			if (error?.message?.includes('billing') || error?.message?.includes('limit')) {
+				console.error('Billing limit reached - falling back to dall-e-3');
+			} else if (
 				error?.message?.includes('verified') ||
 				error?.response?.data?.error?.message?.includes('verified')
 			) {

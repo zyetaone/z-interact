@@ -66,12 +66,17 @@ export async function POST(event: RequestEvent) {
 							// Send completion event with full image
 							const data = JSON.stringify({
 								type: 'completed',
-								image: event.imageBase64,
+								image: event.imageBase64 || '', // Ensure we have image data
 								responseId: event.responseId, // Store for multi-turn editing
 								personaId: validatedBody.personaId,
 								tableId: validatedBody.tableId,
 								timestamp: Date.now()
 							});
+							
+							// Check if we actually have image data
+							if (!event.imageBase64) {
+								console.error('No image data in completed event');
+							}
 
 							controller.enqueue(encoder.encode(`event: completed\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
