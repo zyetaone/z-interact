@@ -99,6 +99,82 @@
 	function goBack() {
 		goto('/gallery');
 	}
+
+	// Format prompt into structured sections
+	function formatPrompt(prompt: string) {
+		const sections: any[] = [];
+		
+		// Split prompt into lines
+		const lines = prompt.split('\n').filter(line => line.trim());
+		
+		let currentSection = '';
+		let requirementsItems: string[] = [];
+		let inRequirements = false;
+		
+		for (const line of lines) {
+			// Scene setting (starts with "Architectural visualization:")
+			if (line.startsWith('Architectural visualization:')) {
+				sections.push({
+					type: 'scene',
+					content: line
+				});
+			}
+			// Persona line (starts with "Designed specifically for:")
+			else if (line.startsWith('Designed specifically for:')) {
+				sections.push({
+					type: 'persona',
+					content: line
+				});
+			}
+			// Core design requirements header
+			else if (line.includes('Core design requirements:')) {
+				inRequirements = true;
+				requirementsItems = [];
+			}
+			// Render specifications
+			else if (line.startsWith('Render specifications:')) {
+				// Save any pending requirements
+				if (inRequirements && requirementsItems.length > 0) {
+					sections.push({
+						type: 'requirements',
+						title: 'Core design requirements:',
+						items: requirementsItems
+					});
+					inRequirements = false;
+				}
+				sections.push({
+					type: 'render',
+					content: line
+				});
+			}
+			// Requirements items
+			else if (inRequirements) {
+				// Clean up the line (remove leading dash if present)
+				const cleanLine = line.replace(/^[-•]\s*/, '').trim();
+				if (cleanLine) {
+					requirementsItems.push(cleanLine);
+				}
+			}
+			// Other content (fallback)
+			else {
+				sections.push({
+					type: 'other',
+					content: line
+				});
+			}
+		}
+		
+		// Add any remaining requirements
+		if (inRequirements && requirementsItems.length > 0) {
+			sections.push({
+				type: 'requirements',
+				title: 'Core design requirements:',
+				items: requirementsItems
+			});
+		}
+		
+		return sections;
+	}
 </script>
 
 <svelte:head>
@@ -233,9 +309,34 @@
 							<div
 								class="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-gray-700 dark:bg-gray-800"
 							>
-								<p class="text-lg leading-relaxed text-slate-700 dark:text-gray-300">
-									{image.prompt}
-								</p>
+								{#each formatPrompt(image.prompt) as section}
+									<div class="mb-4 last:mb-0">
+										{#if section.type === 'scene'}
+											<p class="text-base leading-relaxed text-slate-500 dark:text-gray-400 italic mb-3">
+												{section.content}
+											</p>
+										{:else if section.type === 'persona'}
+											<p class="text-lg leading-relaxed text-slate-800 dark:text-gray-200 font-medium mb-3">
+												{section.content}
+											</p>
+										{:else if section.type === 'requirements'}
+											<div class="mb-3">
+												<p class="text-base font-semibold text-slate-700 dark:text-gray-300 mb-2">
+													{section.title}
+												</p>
+												{#each section.items as item}
+													<p class="text-base leading-relaxed text-slate-900 dark:text-white pl-4 mb-1">
+														• {item}
+													</p>
+												{/each}
+											</div>
+										{:else if section.type === 'render'}
+											<p class="text-sm leading-relaxed text-slate-400 dark:text-gray-500 italic border-t border-slate-200 dark:border-gray-700 pt-4 mt-4">
+												{section.content}
+											</p>
+										{/if}
+									</div>
+								{/each}
 							</div>
 						</section>
 
