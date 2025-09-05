@@ -7,6 +7,7 @@ import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
 import { getCorsHeaders, createOptionsResponse } from '$lib/server/cors';
+import { createR2Storage, R2Storage } from '$lib/server/r2-storage';
 
 export async function GET(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
@@ -71,12 +72,29 @@ export async function POST(event: RequestEvent) {
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
 			try {
+				console.log('Generating image with OpenAI...');
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
 					size: '1024x1024',
 					quality: 'standard'
 				});
-				imageUrl = result.imageUrl;
+				
+				console.log('Image generated, temporary URL:', result.imageUrl);
+				
+				// Upload to R2 storage for permanent storage
+				const r2Storage = createR2Storage(platform);
+				const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
+				
+				console.log('Uploading to R2 storage...');
+				const uploadResult = await r2Storage.uploadImageFromUrl(result.imageUrl, filename);
+				
+				if (uploadResult.success && uploadResult.url) {
+					imageUrl = uploadResult.url;
+					console.log('Image uploaded to R2 successfully:', imageUrl);
+				} else {
+					console.warn('R2 upload failed, using temporary URL:', uploadResult.error);
+					imageUrl = result.imageUrl; // Fallback to temporary URL
+				}
 			} catch (error) {
 				console.error('Failed to generate image:', error);
 				return json({ 
@@ -121,6 +139,24 @@ export async function POST(event: RequestEvent) {
 				prompt: body.prompt
 			}, { headers: corsHeaders });
 		} else {
+			// For save requests, also try to upload to R2 for persistence
+			if (isSaveRequest && imageUrl && !imageUrl.includes(platform?.env?.R2_PUBLIC_URL || '')) {
+				try {
+					const r2Storage = createR2Storage(platform);
+					const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
+					const uploadResult = await r2Storage.uploadImageFromUrl(imageUrl, filename);
+					
+					if (uploadResult.success && uploadResult.url) {
+						console.log('Saved image also uploaded to R2:', uploadResult.url);
+						// Note: We don't update the imageUrl here since the image is already saved to DB
+						// Future enhancement: update the DB record with the R2 URL
+					}
+				} catch (error) {
+					console.warn('Failed to upload saved image to R2:', error);
+					// Continue with the original URL - this is not a critical failure
+				}
+			}
+			
 			// Return format expected by lockImage calls
 			return json({ image: newImage }, { headers: corsHeaders });
 		}
