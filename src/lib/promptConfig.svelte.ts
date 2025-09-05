@@ -64,7 +64,8 @@ export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [
 		field: 'atmosphere',
 		fieldSuggestions: {
 			placeholder: 'Describe the mood and emotional impact...',
-			suggestions: 'inspiring yet calm, energizing but focused, innovative and humane, refined tech-forward sanctuary'
+			suggestions:
+				'inspiring yet calm, energizing but focused, innovative and humane, refined tech-forward sanctuary'
 		}
 	},
 	{

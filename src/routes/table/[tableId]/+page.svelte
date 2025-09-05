@@ -31,9 +31,11 @@
 		environment: '',
 		features: '',
 		colorPalette: '',
+		atmosphere: '', // Combined mood + feeling
+		additionalFeatures: '',
+		// Legacy fields for backward compatibility
 		mood: '',
-		designedToFeel: '',
-		additionalFeatures: ''
+		designedToFeel: ''
 	});
 
 	let generatedImage = $state<string | null>(null);
@@ -157,7 +159,7 @@
 
 		// 2. USER VISION - Core concepts from persona and inputs
 		promptParts.push(`\nDesigned specifically for: ${persona.description}`);
-		
+
 		// Collect user inputs as core design requirements
 		const userVision = [];
 		for (const { field } of persona.promptStructure) {
@@ -166,7 +168,7 @@
 			if ((field === 'mood' || field === 'designedToFeel') && formData['atmosphere']) {
 				continue; // Skip if atmosphere is filled
 			}
-			
+
 			if (value && value.trim()) {
 				switch (field) {
 					case 'environment':
@@ -444,7 +446,7 @@
 										</Helper>
 									{:else}
 										<Helper class="text-gray-500 dark:text-gray-400">
-											<span class="font-medium">{formData[field].length}/10</span> characters minimum
+											{fieldSuggestions.suggestions}
 										</Helper>
 									{/if}
 								</div>

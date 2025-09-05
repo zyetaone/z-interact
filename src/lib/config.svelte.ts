@@ -53,7 +53,7 @@ const defaultConfig: AppConfig = {
 				'55-year-old serial entrepreneur, jaded from city life, Europe. Pragmatic innovator who prefers flexible workspaces and has seen multiple office trends, seeking a balance between remote work and in-person networking.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
-		'millennial': {
+		millennial: {
 			id: 'millennial',
 			title: 'Millennial R&D Head',
 			description:
