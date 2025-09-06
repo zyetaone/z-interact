@@ -1,5 +1,5 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { imageGenerator } from '$lib/server/ai/simple-image-generator';
+import { createImageGenerator } from '$lib/server/ai/simple-image-generator';
 import { object, string, optional, parse } from 'valibot';
 import { createR2Storage, R2Storage } from '$lib/server/r2-storage';
 import { getDb } from '$lib/server/db';
@@ -36,6 +36,9 @@ export async function POST(event: RequestEvent) {
 		const stream = new ReadableStream({
 			async start(controller) {
 				const encoder = new TextEncoder();
+
+				// Create image generator with platform context
+				const imageGenerator = createImageGenerator(event.platform);
 
 				// Check if image generator is configured
 				if (!imageGenerator.isAvailable()) {

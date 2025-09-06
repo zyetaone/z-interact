@@ -21,6 +21,7 @@ bucket_name = "r2-store"
 R2_PUBLIC_URL = "https://pub-5ec73edb17e14cf19ca4422bf65d7d26.r2.dev"
 ENABLE_R2_STORAGE = "true"  # R2 storage enabled with r2-store bucket
 MIGRATION_BATCH_SIZE = "10"
+# FAL_API_KEY is set as a secret in Cloudflare dashboard - binding declared below
 
 # Optional: R2 bucket configuration for development
 # Uncomment and configure these for local development with r2.dev

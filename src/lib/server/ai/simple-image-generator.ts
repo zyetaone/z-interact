@@ -28,16 +28,35 @@ export interface StreamEvent {
  */
 export class SimpleImageGenerator {
 	private isConfigured: boolean = false;
+	private apiKey: string | undefined;
 
-	constructor() {
-		if (env.FAL_API_KEY) {
+	constructor(platform?: any) {
+		// Try to get API key from platform first (Cloudflare Workers)
+		this.apiKey = platform?.env?.FAL_API_KEY || env.FAL_API_KEY;
+		
+		if (this.apiKey) {
 			fal.config({
-				credentials: env.FAL_API_KEY
+				credentials: this.apiKey
 			});
 			this.isConfigured = true;
 			console.log('✅ Fal.ai configured with nano-banana model');
 		} else {
 			console.warn('⚠️ FAL_API_KEY not configured');
+		}
+	}
+
+	/**
+	 * Configure with platform-specific environment
+	 */
+	configureWithPlatform(platform: any) {
+		const platformKey = platform?.env?.FAL_API_KEY;
+		if (platformKey && platformKey !== this.apiKey) {
+			this.apiKey = platformKey;
+			fal.config({
+				credentials: platformKey
+			});
+			this.isConfigured = true;
+			console.log('✅ Fal.ai reconfigured with platform API key');
 		}
 	}
 
@@ -203,5 +222,11 @@ export class SimpleImageGenerator {
 	}
 }
 
-// Export singleton instance
+// Export singleton instance (will be configured at runtime)
 export const imageGenerator = new SimpleImageGenerator();
+
+// Factory function for creating configured instances
+export function createImageGenerator(platform?: any): SimpleImageGenerator {
+	const generator = new SimpleImageGenerator(platform);
+	return generator;
+}

@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { images, generateImageRequestSchema, saveImageRequestSchema } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { imageGenerator } from '$lib/server/ai/simple-image-generator';
+import { createImageGenerator } from '$lib/server/ai/simple-image-generator';
 import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
@@ -80,6 +80,8 @@ export async function POST(event: RequestEvent) {
 		if (isGenerationRequest) {
 			try {
 				console.log('Generating image...');
+				// Create image generator with platform context for Cloudflare Workers
+				const imageGenerator = createImageGenerator(platform);
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
 					personaId: validatedBody.personaId,
