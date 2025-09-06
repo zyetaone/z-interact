@@ -75,6 +75,7 @@ export async function POST(event: RequestEvent) {
 
 		let imageUrl: string | undefined =
 			'imageUrl' in validatedBody ? (validatedBody.imageUrl as string) : undefined;
+		let generationResult: any = null;
 
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
@@ -94,20 +95,20 @@ export async function POST(event: RequestEvent) {
 					throw new Error('Fal.ai not configured. FAL_API_KEY environment variable is missing.');
 				}
 				
-				const result = await imageGenerator.generateImage({
+				generationResult = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
 					personaId: validatedBody.personaId,
 					tableId: validatedBody.tableId
 				});
 
 				console.log('Image generated:', {
-					provider: result.provider,
-					hasUrl: !!result.imageUrl,
-					model: result.metadata?.model
+					provider: generationResult.provider,
+					hasUrl: !!generationResult.imageUrl,
+					model: generationResult.metadata?.model
 				});
 
 				// Use the image URL from the result
-				let imageUrl = result.imageUrl;
+				imageUrl = generationResult.imageUrl;
 				if (!imageUrl) {
 					throw new Error('No image URL returned from generator');
 				}
@@ -117,8 +118,8 @@ export async function POST(event: RequestEvent) {
 				const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
 
 				console.log('Uploading to R2 storage...');
-				const uploadResult = result.imageBase64
-					? await r2Storage.uploadImageFromBase64(result.imageBase64, filename)
+				const uploadResult = generationResult.imageBase64
+					? await r2Storage.uploadImageFromBase64(generationResult.imageBase64, filename)
 					: await r2Storage.uploadImageFromUrl(imageUrl, filename);
 
 				if (uploadResult.success && uploadResult.url) {
@@ -162,7 +163,7 @@ export async function POST(event: RequestEvent) {
 			participantId: null,
 			imageUrl: imageUrl as string,
 			prompt: validatedBody.prompt,
-			provider: 'openai',
+			provider: result?.provider || 'fal.ai/nano-banana',
 			status: 'completed',
 			createdAt: new Date(),
 			updatedAt: new Date()
