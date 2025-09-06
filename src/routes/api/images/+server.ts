@@ -80,8 +80,20 @@ export async function POST(event: RequestEvent) {
 		if (isGenerationRequest) {
 			try {
 				console.log('Generating image...');
+				console.log('Platform env check:', {
+					hasPlatform: !!platform,
+					hasEnv: !!platform?.env,
+					hasFalKey: !!platform?.env?.FAL_API_KEY,
+					falKeyPrefix: platform?.env?.FAL_API_KEY ? platform.env.FAL_API_KEY.substring(0, 10) + '...' : 'not found'
+				});
+				
 				// Create image generator with platform context for Cloudflare Workers
 				const imageGenerator = createImageGenerator(platform);
+				
+				if (!imageGenerator.isAvailable()) {
+					throw new Error('Fal.ai not configured. FAL_API_KEY environment variable is missing.');
+				}
+				
 				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
 					personaId: validatedBody.personaId,
@@ -118,10 +130,16 @@ export async function POST(event: RequestEvent) {
 				}
 			} catch (error) {
 				console.error('Failed to generate image:', error);
+				const errorMessage = error instanceof Error ? error.message : String(error);
 				return json(
 					{
 						error: 'Failed to generate image',
-						debug: error instanceof Error ? error.message : String(error)
+						debug: errorMessage,
+						platform: {
+							hasPlatform: !!platform,
+							hasEnv: !!platform?.env,
+							hasFalKey: !!platform?.env?.FAL_API_KEY
+						}
 					},
 					{ status: 500, headers: corsHeaders }
 				);
