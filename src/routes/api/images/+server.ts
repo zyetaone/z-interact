@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { images, generateImageRequestSchema, saveImageRequestSchema } from '$lib/server/db/schema';
-import { desc } from 'drizzle-orm';
-import { createImageGenerator } from '$lib/server/ai/simple-image-generator';
+import { desc, eq } from 'drizzle-orm';
+import { createImageGenerator } from '$lib/server/ai/image-generator';
 import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
@@ -13,8 +13,13 @@ export async function GET(event: RequestEvent) {
 	const corsHeaders = getCorsHeaders(event.request.headers.get('origin'));
 	try {
 		const database = getDb(event.platform);
-		const allImages = await database.select().from(images).orderBy(desc(images.createdAt));
-		return json(allImages, { headers: corsHeaders });
+		// Only fetch images that have been explicitly locked (not just generated)
+		const lockedImages = await database
+			.select()
+			.from(images)
+			.where(eq(images.status, 'locked'))
+			.orderBy(desc(images.createdAt));
+		return json(lockedImages, { headers: corsHeaders });
 	} catch (error) {
 		console.error('Failed to fetch images:', error);
 		return json(
@@ -85,16 +90,18 @@ export async function POST(event: RequestEvent) {
 					hasPlatform: !!platform,
 					hasEnv: !!platform?.env,
 					hasFalKey: !!platform?.env?.FAL_API_KEY,
-					falKeyPrefix: platform?.env?.FAL_API_KEY ? platform.env.FAL_API_KEY.substring(0, 10) + '...' : 'not found'
+					falKeyPrefix: platform?.env?.FAL_API_KEY
+						? platform.env.FAL_API_KEY.substring(0, 10) + '...'
+						: 'not found'
 				});
-				
+
 				// Create image generator with platform context for Cloudflare Workers
 				const imageGenerator = createImageGenerator(platform);
-				
+
 				if (!imageGenerator.isAvailable()) {
 					throw new Error('Fal.ai not configured. FAL_API_KEY environment variable is missing.');
 				}
-				
+
 				generationResult = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
 					personaId: validatedBody.personaId,
@@ -132,14 +139,25 @@ export async function POST(event: RequestEvent) {
 			} catch (error) {
 				console.error('Failed to generate image:', error);
 				const errorMessage = error instanceof Error ? error.message : String(error);
+				
+				// Log more details for debugging
+				console.error('Error details:', {
+					errorType: error?.constructor?.name,
+					message: errorMessage,
+					stack: error instanceof Error ? error.stack : undefined,
+					falKeyExists: !!platform?.env?.FAL_API_KEY,
+					falKeyLength: platform?.env?.FAL_API_KEY?.length
+				});
+				
 				return json(
 					{
 						error: 'Failed to generate image',
-						debug: errorMessage,
-						platform: {
+						message: errorMessage,
+						details: {
 							hasPlatform: !!platform,
 							hasEnv: !!platform?.env,
-							hasFalKey: !!platform?.env?.FAL_API_KEY
+							hasFalKey: !!platform?.env?.FAL_API_KEY,
+							keyLength: platform?.env?.FAL_API_KEY?.length || 0
 						}
 					},
 					{ status: 500, headers: corsHeaders }
@@ -163,8 +181,9 @@ export async function POST(event: RequestEvent) {
 			participantId: null,
 			imageUrl: imageUrl as string,
 			prompt: validatedBody.prompt,
-			provider: result?.provider || 'fal.ai/nano-banana',
-			status: 'completed',
+			provider: generationResult?.provider || 'fal.ai/nano-banana',
+			// Set status based on whether this is a generation or save request
+			status: isSaveRequest ? 'locked' : 'generated',
 			createdAt: new Date(),
 			updatedAt: new Date()
 			// migrationStatus: 'completed',  // Column may not exist in Cloudflare D1

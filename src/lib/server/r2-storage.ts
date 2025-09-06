@@ -16,7 +16,7 @@ export class R2Storage {
 
 	/**
 	 * Upload an image to R2 storage from a URL
-	 * @param imageUrl - The source image URL (e.g., from OpenAI)
+	 * @param imageUrl - The source image URL (e.g., from Fal.ai)
 	 * @param filename - The desired filename for the stored image
 	 * @returns R2UploadResult with the permanent URL
 	 */

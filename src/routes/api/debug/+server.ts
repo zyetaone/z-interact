@@ -13,7 +13,7 @@ export async function GET(event: RequestEvent) {
 				env: {
 					exists: !!event.platform?.env,
 					z_interact_db: !!event.platform?.env?.z_interact_db,
-					OPENAI_API_KEY: !!event.platform?.env?.OPENAI_API_KEY,
+					FAL_API_KEY: !!event.platform?.env?.FAL_API_KEY,
 					SESSION_SECRET: !!event.platform?.env?.SESSION_SECRET,
 					R2_IMAGES: !!event.platform?.env?.R2_IMAGES,
 					R2_PUBLIC_URL: !!event.platform?.env?.R2_PUBLIC_URL,

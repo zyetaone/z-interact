@@ -36,7 +36,7 @@ declare global {
 		interface Platform {
 			env: {
 				z_interact_db: D1Database;
-				OPENAI_API_KEY?: string;
+				FAL_API_KEY?: string;
 				SESSION_SECRET?: string;
 				ENABLE_R2_STORAGE?: string;
 				R2_IMAGES?: R2Bucket;

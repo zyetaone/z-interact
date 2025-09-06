@@ -139,21 +139,3 @@ export class Environment {
 
 // Default instance for convenience
 export const env = new Environment();
-
-// Legacy compatibility exports (will be removed in future versions)
-export const FAL_API_KEY = env.FAL_API_KEY;
-export const DATABASE_URL = env.DATABASE_URL;
-export const SESSION_SECRET = env.SESSION_SECRET;
-
-// Legacy function exports for backwards compatibility
-export function getDatabaseUrl(platform?: any): string {
-	return new Environment(platform).DATABASE_URL;
-}
-
-export function getSessionSecret(platform?: any): string {
-	return new Environment(platform).SESSION_SECRET;
-}
-
-export function getEnvVar(key: string, platform?: any): string | undefined {
-	return getEnvValue(key, platform);
-}

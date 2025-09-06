@@ -64,10 +64,10 @@
 		return `/api/images/${image.id}`;
 	}
 
-	// Check if image URL is expired (for OpenAI URLs)
+	// Check if image URL is expired (for temporary URLs)
 	function isImageExpired(imageUrl: string): boolean {
 		if (!imageUrl || !imageUrl.includes('oaidalleapiprodscus.blob.core.windows.net')) {
-			return false; // Not an OpenAI URL or no URL
+			return false; // Not a temporary URL or no URL
 		}
 
 		try {

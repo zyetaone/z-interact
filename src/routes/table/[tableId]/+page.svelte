@@ -84,7 +84,7 @@
 					isLocked = true;
 					generatedImage = existingImage.imageUrl;
 				}
-				
+
 				// Mark loading as complete
 				isLoading = false;
 			});

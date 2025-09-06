@@ -1,266 +1,228 @@
-import OpenAI from 'openai';
+import { fal } from '@fal-ai/client';
 import { env } from '../env';
 
 export interface ImageGenerationOptions {
 	prompt: string;
-	size?: '1024x1024' | '1536x1024' | '1024x1536' | 'auto';
-	quality?: 'high' | 'medium' | 'low' | 'auto';
-	background?: 'transparent' | 'opaque' | 'auto';
-	partial_images?: number;
-	response_format?: 'url' | 'b64_json';
-	stream?: boolean;
+	personaId?: string;
+	tableId?: string;
 }
 
 export interface ImageGenerationResult {
-	imageUrl?: string;
-	b64_json?: string;
+	imageUrl: string;
 	provider: string;
 	prompt: string;
-	revisedPrompt?: string;
 	metadata?: Record<string, any>;
 }
 
 export interface StreamEvent {
-	type: 'partial_image' | 'completed' | 'error';
-	b64_json?: string;
-	partial_image_index?: number;
-	usage?: {
-		total_tokens: number;
-		input_tokens: number;
-		output_tokens: number;
-	};
+	type: 'partial' | 'completed' | 'error';
+	imageUrl?: string;
+	progress?: number;
 	error?: string;
 }
 
+/**
+ * Image Generator using Fal.ai nano-banana model
+ * Optimized for architectural/workspace visualizations
+ * Cost: ~$0.0025 per image
+ */
 export class ImageGenerator {
-	private client: OpenAI | null = null;
+	private isConfigured: boolean = false;
+	private apiKey: string | undefined;
 
-	constructor() {
-		if (env.OPENAI_API_KEY) {
-			const config: any = { apiKey: env.OPENAI_API_KEY };
-			if (env.OPENAI_ORG) config.organization = env.OPENAI_ORG;
-			this.client = new OpenAI(config);
+	constructor(platform?: any) {
+		// Try multiple methods to get API key (Cloudflare Workers secrets can be tricky)
+		// IMPORTANT: The key in Cloudflare has a trailing space "FAL_API_KEY "
+		this.apiKey =
+			platform?.env?.FAL_API_KEY || // Method 1: Direct from env
+			platform?.env?.['FAL_API_KEY'] || // Method 2: Bracket notation
+			platform?.env?.['FAL_API_KEY '] || // Method 3: WITH TRAILING SPACE (Cloudflare bug)
+			env.FAL_API_KEY || // Method 4: From env.ts
+			(typeof process !== 'undefined' ? process.env?.FAL_API_KEY : undefined); // Method 5: Process env
+
+		if (this.apiKey) {
+			fal.config({
+				credentials: this.apiKey
+			});
+			this.isConfigured = true;
+			console.log('✅ Fal.ai configured with nano-banana model');
+		} else {
+			console.warn(
+				'⚠️ FAL_API_KEY not configured. Platform env keys:',
+				platform?.env ? Object.keys(platform.env) : 'No platform env'
+			);
 		}
 	}
 
+	/**
+	 * Configure with platform-specific environment
+	 */
+	configureWithPlatform(platform: any) {
+		const platformKey = platform?.env?.FAL_API_KEY;
+		if (platformKey && platformKey !== this.apiKey) {
+			this.apiKey = platformKey;
+			fal.config({
+				credentials: platformKey
+			});
+			this.isConfigured = true;
+			console.log('✅ Fal.ai reconfigured with platform API key');
+		}
+	}
+
+	/**
+	 * Generate an architectural workspace image
+	 */
 	async generateImage(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
+		if (!this.isConfigured) {
+			throw new Error('Fal.ai API key not configured');
+		}
+
 		try {
-			// Use streaming if requested
-			if (options.stream) {
-				throw new Error('Use generateImageStream() for streaming generation');
+			const startTime = Date.now();
+			console.log('🎨 Generating with fal-ai/nano-banana...');
+
+			// Build the enhanced prompt for architectural visualization
+			const enhancedPrompt = this.enhancePrompt(options.prompt, options.personaId);
+
+			const result = await fal.subscribe('fal-ai/nano-banana', {
+				input: {
+					prompt: enhancedPrompt,
+					num_images: 1,
+					output_format: 'jpeg'
+				},
+				logs: true,
+				onQueueUpdate: (update) => {
+					if (update.status === 'IN_PROGRESS' && update.logs) {
+						update.logs.map((log: any) => log.message).forEach(console.log);
+					}
+				}
+			});
+
+			// Get the image URL from the result - Fal.ai returns result.data.images array
+			const imageUrl = result.data?.images?.[0]?.url || (result as any).images?.[0]?.url;
+			if (!imageUrl) {
+				console.error('Response structure:', JSON.stringify(result, null, 2));
+				throw new Error('No image URL in response');
 			}
 
-			return await this.generateStandard(options);
-		} catch (error) {
+			const generationTime = ((Date.now() - startTime) / 1000).toFixed(2);
+			console.log(`✅ Image generated in ${generationTime}s | Cost: ~$0.0025`);
+
+			return {
+				imageUrl,
+				provider: 'fal.ai/nano-banana',
+				prompt: options.prompt,
+				metadata: {
+					model: 'nano-banana',
+					generationTime,
+					requestId: result.requestId,
+					enhancedPrompt,
+					cost: 0.0025
+				}
+			};
+		} catch (error: any) {
 			console.error('Image generation failed:', error);
-			// Fallback to placeholder if OpenAI fails
-			return this.generateFallback(options.prompt);
+			console.error('Error details:', {
+				message: error?.message,
+				status: error?.status,
+				body: error?.body,
+				stack: error?.stack
+			});
+			
+			// If API key is invalid or network error, throw to let the endpoint handle it
+			if (error?.message?.includes('API key') || error?.message?.includes('401') || error?.message?.includes('403')) {
+				throw new Error(`Fal.ai authentication failed: ${error.message}`);
+			}
+			
+			// For other errors, return a placeholder as fallback
+			console.warn('Falling back to placeholder image');
+			return this.generatePlaceholder(options.prompt);
 		}
 	}
 
+	/**
+	 * Stream image generation with progress updates
+	 */
 	async *generateImageStream(options: ImageGenerationOptions): AsyncGenerator<StreamEvent> {
-		if (!this.client) {
-			yield {
-				type: 'error',
-				error: 'OpenAI client not configured'
-			};
+		if (!this.isConfigured) {
+			yield { type: 'error', error: 'Fal.ai not configured' };
 			return;
 		}
 
 		try {
-			console.log('Starting streaming generation with gpt-image-1...');
+			const enhancedPrompt = this.enhancePrompt(options.prompt, options.personaId);
+			let progress = 0;
 
-			// Use the streaming API as documented
-			// Note: gpt-image-1 doesn't support response_format
-			const stream = await this.client.images.generate({
-				model: 'gpt-image-1',
-				prompt: options.prompt,
-				n: 1,
-				size: options.size || '1024x1024', // Square format - most cost effective
-				quality: options.quality || 'medium', // Medium quality for better results
-				background: options.background || 'auto',
-				stream: true,
-				partial_images: options.partial_images || 2 // Request 2 partial images
-			} as any);
-
-			// Process the stream events
-			for await (const event of stream) {
-				if (event.type === 'image_generation.partial_image') {
-					// Partial image event
-					yield {
-						type: 'partial_image',
-						b64_json: event.b64_json,
-						partial_image_index: event.partial_image_index
-					};
-					console.log(`Received partial image ${event.partial_image_index}`);
-				} else if (event.b64_json) {
-					// Final complete image
-					yield {
-						type: 'completed',
-						b64_json: event.b64_json,
-						usage: {
-							total_tokens: 1056, // Medium quality 1024x1024 = 1056 tokens
-							input_tokens: 50, // Estimated
-							output_tokens: 1056
-						}
-					};
-					console.log('Received complete image');
+			// Simulate progress updates since nano-banana doesn't have native streaming
+			const progressInterval = setInterval(() => {
+				if (progress < 90) {
+					progress += 10;
 				}
-			}
-		} catch (error: any) {
-			console.error('Streaming generation error:', error?.message || error);
+			}, 200);
 
-			// Check for billing issues
-			if (error?.message?.includes('billing') || error?.message?.includes('limit')) {
-				console.error('Billing limit reached - falling back to dall-e-3');
-				// Try dall-e-3 as fallback
-			} else if (
-				error?.message?.includes('verified') ||
-				error?.response?.data?.error?.message?.includes('verified')
-			) {
-				console.log('gpt-image-1 requires verification, falling back to dall-e-3...');
-
-				try {
-					// Fallback to dall-e-3 (no native streaming)
-					const response = await this.client.images.generate({
-						model: 'dall-e-3',
-						prompt: options.prompt,
-						n: 1,
-						size: '1024x1024', // Square format - cheaper ($0.04 vs $0.08)
-						quality: 'standard' // Standard quality saves 50% cost
-						// dall-e-3 returns URL by default
-					});
-
-					if (response.data && response.data[0]) {
-						yield {
-							type: 'completed',
-							b64_json: response.data[0].b64_json || '',
-							usage: {
-								total_tokens: 100,
-								input_tokens: 50,
-								output_tokens: 50
-							}
-						};
-					} else {
-						throw new Error('No image data received from dall-e-3');
+			const result = await fal.subscribe('fal-ai/nano-banana', {
+				input: {
+					prompt: enhancedPrompt,
+					num_images: 1,
+					output_format: 'jpeg'
+				},
+				logs: true,
+				onQueueUpdate: (update) => {
+					if (update.status === 'IN_PROGRESS') {
+						progress = Math.min(progress + 5, 90);
+						console.log(`Progress: ${progress}%`);
 					}
-				} catch (fallbackError) {
-					console.error('Fallback to dall-e-3 also failed:', fallbackError);
-					yield {
-						type: 'error',
-						error: fallbackError instanceof Error ? fallbackError.message : 'Generation failed'
-					};
 				}
+			});
+
+			clearInterval(progressInterval);
+
+			const imageUrl = result.data?.images?.[0]?.url || (result as any).images?.[0]?.url;
+			if (imageUrl) {
+				yield {
+					type: 'completed',
+					imageUrl,
+					progress: 100
+				};
 			} else {
-				// Other errors
-				console.error('Streaming generation failed:', error);
 				yield {
 					type: 'error',
-					error: error instanceof Error ? error.message : 'Unknown error occurred'
+					error: 'No image generated'
 				};
 			}
-		}
-	}
-
-	private async generateStandard(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
-		if (!this.client) {
-			throw new Error('OpenAI API key not configured');
-		}
-
-		try {
-			// Try gpt-image-1 first (now verified!)
-			console.log('Generating with gpt-image-1 (verified)...');
-			// Note: gpt-image-1 doesn't support response_format parameter
-			const params: any = {
-				model: 'gpt-image-1',
-				prompt: options.prompt,
-				n: 1,
-				size: options.size || '1024x1024', // Square format - most cost effective
-				quality: options.quality || 'medium', // Medium quality for better results
-				background: options.background || 'auto'
-			};
-			
-			// Only add response_format for models that support it
-			if (options.response_format) {
-				// gpt-image-1 returns URL by default
-				console.log('Note: gpt-image-1 returns URL format by default');
-			}
-			
-			const response = await this.client.images.generate(params);
-
-			if (!response.data || !response.data[0]) {
-				throw new Error('No image data received from OpenAI');
-			}
-
-			const data = response.data[0];
-
-			console.log('✅ gpt-image-1 generation successful! Cost: ~$0.04 (medium quality)');
-
-			// Return based on response format
-			return {
-				imageUrl: data.url,
-				b64_json: data.b64_json,
-				provider: 'openai',
-				prompt: options.prompt,
-				revisedPrompt: data.revised_prompt,
-				metadata: {
-					model: 'gpt-image-1',
-					size: options.size || '1024x1024',
-					quality: options.quality || 'medium',
-					background: options.background || 'auto',
-					cost: 0.04 // Medium quality costs more
-				}
-			};
 		} catch (error: any) {
-			console.error('Generation error:', error?.message || error);
-
-			// Check for billing issues first
-			if (error?.message?.includes('billing') || error?.message?.includes('limit')) {
-				console.error('Billing limit reached - falling back to dall-e-3');
-			} else if (
-				error?.message?.includes('verified') ||
-				error?.response?.data?.error?.message?.includes('verified')
-			) {
-				console.log('Note: Verification error (should be resolved now)...');
-
-				// Fallback to dall-e-3
-				const response = await this.client.images.generate({
-					model: 'dall-e-3',
-					prompt: options.prompt,
-					n: 1,
-					size: '1024x1024', // Square format - cheaper ($0.04 vs $0.08)
-					quality: 'standard', // Standard quality saves 50% cost
-					response_format: 'url'
-				});
-
-				if (!response.data || !response.data[0]) {
-					throw new Error('No image data received from OpenAI');
-				}
-
-				const data = response.data[0];
-
-				return {
-					imageUrl: data.url,
-					provider: 'openai',
-					prompt: options.prompt,
-					revisedPrompt: data.revised_prompt,
-					metadata: {
-						model: 'dall-e-3',
-						size: '1024x1024',
-						quality: 'standard',
-						note: 'Fallback from gpt-image-1 (verification required)'
-					}
-				};
-			}
-
-			// Re-throw other errors
-			throw error;
+			yield {
+				type: 'error',
+				error: error?.message || 'Generation failed'
+			};
 		}
 	}
 
-	private generateFallback(prompt: string): ImageGenerationResult {
-		// Fallback to Picsum if OpenAI fails
-		// Using 1024x1024 square format to match our cost-optimized size
+	/**
+	 * Enhance the prompt with architectural specifications
+	 */
+	private enhancePrompt(basePrompt: string, personaId?: string): string {
+		// Add architectural visualization prefix if not already present
+		if (!basePrompt.toLowerCase().includes('architectural')) {
+			basePrompt = `Architectural visualization: ${basePrompt}`;
+		}
+
+		// Add rendering specifications
+		const specs = [
+			'Photorealistic architectural photography style',
+			'Wide-angle perspective showing complete workspace',
+			'Natural daylight through windows',
+			'Clean visual without any text, labels, logos, or watermarks',
+			'Focus on architectural details and spatial flow'
+		];
+
+		return `${basePrompt}\n\nRender specifications: ${specs.join('. ')}.`;
+	}
+
+	/**
+	 * Generate a placeholder image as fallback
+	 */
+	private generatePlaceholder(prompt: string): ImageGenerationResult {
 		const imageUrl = `https://picsum.photos/1024/1024?random=${Date.now()}`;
 
 		return {
@@ -269,10 +231,24 @@ export class ImageGenerator {
 			prompt,
 			metadata: {
 				fallback: true,
-				reason: 'OpenAI generation failed'
+				reason: 'Fal.ai generation failed'
 			}
 		};
 	}
+
+	/**
+	 * Check if the generator is configured
+	 */
+	isAvailable(): boolean {
+		return this.isConfigured;
+	}
 }
 
+// Export singleton instance (will be configured at runtime)
 export const imageGenerator = new ImageGenerator();
+
+// Factory function for creating configured instances
+export function createImageGenerator(platform?: any): ImageGenerator {
+	const generator = new ImageGenerator(platform);
+	return generator;
+}
