@@ -32,11 +32,13 @@ export class SimpleImageGenerator {
 
 	constructor(platform?: any) {
 		// Try multiple methods to get API key (Cloudflare Workers secrets can be tricky)
+		// IMPORTANT: The key in Cloudflare has a trailing space "FAL_API_KEY "
 		this.apiKey = 
 			platform?.env?.FAL_API_KEY || // Method 1: Direct from env
 			platform?.env?.['FAL_API_KEY'] || // Method 2: Bracket notation
-			env.FAL_API_KEY || // Method 3: From env.ts
-			(typeof process !== 'undefined' ? process.env?.FAL_API_KEY : undefined); // Method 4: Process env
+			platform?.env?.['FAL_API_KEY '] || // Method 3: WITH TRAILING SPACE (Cloudflare bug)
+			env.FAL_API_KEY || // Method 4: From env.ts
+			(typeof process !== 'undefined' ? process.env?.FAL_API_KEY : undefined); // Method 5: Process env
 		
 		if (this.apiKey) {
 			fal.config({

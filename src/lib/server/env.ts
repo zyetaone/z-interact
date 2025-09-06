@@ -66,7 +66,8 @@ export class Environment {
 	}
 
 	get FAL_API_KEY(): string | undefined {
-		return getEnvValue('FAL_API_KEY', this.platform);
+		// Check with trailing space first (Cloudflare bug)
+		return getEnvValue('FAL_API_KEY ', this.platform) || getEnvValue('FAL_API_KEY', this.platform);
 	}
 
 	get SESSION_SECRET(): string {
