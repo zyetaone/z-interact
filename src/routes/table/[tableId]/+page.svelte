@@ -38,6 +38,8 @@
 		designedToFeel: ''
 	});
 
+	// Initialize as loading state to prevent flash
+	let isLoading = $state(true);
 	let generatedImage = $state<string | null>(null);
 	let partialImage = $state<string | null>(null); // For streaming preview
 	let isLocked = $state(false);
@@ -83,6 +85,9 @@
 					isLocked = true;
 					generatedImage = existingImage.imageUrl;
 				}
+				
+				// Mark loading as complete
+				isLoading = false;
 			});
 		}
 	});
@@ -302,19 +307,28 @@
 								streamProgress = data.index * 25; // Estimate progress
 								toastStore.info(`Generating... ${streamProgress}%`);
 							} else if (data.type === 'completed') {
-								// Final image received - convert to data URL
-								const finalImageData = `data:image/png;base64,${data.image}`;
+								// Final image received - either as base64 or URL
+								let finalImageUrl;
+								if (data.image) {
+									// Legacy base64 format
+									finalImageUrl = `data:image/png;base64,${data.image}`;
+								} else if (data.imageUrl) {
+									// New URL format from nano-banana
+									finalImageUrl = data.imageUrl;
+								} else {
+									throw new Error('No image data in completed event');
+								}
 
 								// Save the already generated image to workspace store
 								await workspaceStore.lockImage({
 									tableId: table.id,
 									personaId: persona.id,
-									imageUrl: finalImageData,
+									imageUrl: finalImageUrl,
 									prompt: prompt,
 									lockedAt: new Date().toISOString()
 								});
 
-								generatedImage = finalImageData;
+								generatedImage = finalImageUrl;
 								partialImage = null;
 								streamProgress = 100;
 								toastStore.success('Image generated successfully!');
@@ -376,6 +390,16 @@
 			</p>
 			<Button onclick={() => goto('/')} variant="outline">← Back to QR Codes</Button>
 		</Card>
+	</div>
+{:else if isLoading}
+	<!-- Loading State -->
+	<div
+		class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800"
+	>
+		<div class="text-center">
+			<Spinner size="10" class="mb-4" />
+			<p class="text-lg text-gray-600 dark:text-gray-400">Loading...</p>
+		</div>
 	</div>
 {:else if isLocked}
 	<!-- Thank You State -->
