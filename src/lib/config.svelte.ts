@@ -82,11 +82,11 @@ const defaultConfig: AppConfig = {
 		{ id: '3', displayName: 'Table 3', personaId: 'millennial' },
 		{ id: '4', displayName: 'Table 4', personaId: 'gen-z' },
 		{ id: '5', displayName: 'Table 5', personaId: 'gen-alpha' },
-		{ id: '6', displayName: 'Table 6', personaId: 'gen-alpha' },
-		{ id: '7', displayName: 'Table 7', personaId: 'millennial' },
-		{ id: '8', displayName: 'Table 8', personaId: 'gen-z' },
-		{ id: '9', displayName: 'Table 9', personaId: 'gen-x' },
-		{ id: '10', displayName: 'Table 10', personaId: 'baby-boomer' }
+		{ id: '6', displayName: 'Table 6', personaId: 'baby-boomer' },
+		{ id: '7', displayName: 'Table 7', personaId: 'gen-x' },
+		{ id: '8', displayName: 'Table 8', personaId: 'millennial' },
+		{ id: '9', displayName: 'Table 9', personaId: 'gen-z' },
+		{ id: '10', displayName: 'Table 10', personaId: 'gen-alpha' }
 	]
 };
 
