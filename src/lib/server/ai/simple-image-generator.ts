@@ -31,8 +31,12 @@ export class SimpleImageGenerator {
 	private apiKey: string | undefined;
 
 	constructor(platform?: any) {
-		// Try to get API key from platform first (Cloudflare Workers)
-		this.apiKey = platform?.env?.FAL_API_KEY || env.FAL_API_KEY;
+		// Try multiple methods to get API key (Cloudflare Workers secrets can be tricky)
+		this.apiKey = 
+			platform?.env?.FAL_API_KEY || // Method 1: Direct from env
+			platform?.env?.['FAL_API_KEY'] || // Method 2: Bracket notation
+			env.FAL_API_KEY || // Method 3: From env.ts
+			(typeof process !== 'undefined' ? process.env?.FAL_API_KEY : undefined); // Method 4: Process env
 		
 		if (this.apiKey) {
 			fal.config({
@@ -41,7 +45,7 @@ export class SimpleImageGenerator {
 			this.isConfigured = true;
 			console.log('✅ Fal.ai configured with nano-banana model');
 		} else {
-			console.warn('⚠️ FAL_API_KEY not configured');
+			console.warn('⚠️ FAL_API_KEY not configured. Platform env keys:', platform?.env ? Object.keys(platform.env) : 'No platform env');
 		}
 	}
 
