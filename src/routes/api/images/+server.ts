@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import { images, generateImageRequestSchema, saveImageRequestSchema } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { unifiedImageGenerator } from '$lib/server/ai/unified-image-generator';
+import { imageGenerator } from '$lib/server/ai/simple-image-generator';
 import type { NewImage } from '$lib/server/db/schema';
 import type { RequestEvent } from '@sveltejs/kit';
 import { parse, ValiError } from 'valibot';
@@ -79,29 +79,23 @@ export async function POST(event: RequestEvent) {
 		// If this is a generation request, generate the image first
 		if (isGenerationRequest) {
 			try {
-				console.log('Generating image with Unified Generator...');
-				const result = await unifiedImageGenerator.generateImage({
+				console.log('Generating image...');
+				const result = await imageGenerator.generateImage({
 					prompt: validatedBody.prompt,
-					mode: 'fal', // Use Fal.ai FLUX model
-					size: '1024x1024', // Square format
-					quality: 'medium' // Medium quality for better results
+					personaId: validatedBody.personaId,
+					tableId: validatedBody.tableId
 				});
 
 				console.log('Image generated:', {
 					provider: result.provider,
-					hasBase64: !!result.imageBase64,
 					hasUrl: !!result.imageUrl,
 					model: result.metadata?.model
 				});
 
-				// Get image URL (either provided or convert from base64)
-				let imageUrl: string;
-				if (result.imageUrl) {
-					imageUrl = result.imageUrl;
-				} else if (result.imageBase64) {
-					imageUrl = `data:image/png;base64,${result.imageBase64}`;
-				} else {
-					throw new Error('No image data returned from generator');
+				// Use the image URL from the result
+				let imageUrl = result.imageUrl;
+				if (!imageUrl) {
+					throw new Error('No image URL returned from generator');
 				}
 
 				// Upload to R2 storage for permanent storage

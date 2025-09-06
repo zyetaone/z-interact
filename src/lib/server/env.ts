@@ -7,8 +7,6 @@ import { env as svelteEnv } from '$env/dynamic/private';
 export interface EnvConfig {
 	// Core application variables
 	DATABASE_URL: string;
-	OPENAI_API_KEY?: string;
-	OPENAI_ORG?: string;
 	FAL_API_KEY?: string;
 	SESSION_SECRET?: string;
 
@@ -65,14 +63,6 @@ export class Environment {
 	// Core application variables
 	get DATABASE_URL(): string {
 		return getEnvValue('DATABASE_URL', this.platform) || 'file:./local.db';
-	}
-
-	get OPENAI_API_KEY(): string | undefined {
-		return getEnvValue('OPENAI_API_KEY', this.platform);
-	}
-
-	get OPENAI_ORG(): string | undefined {
-		return getEnvValue('OPENAI_ORG', this.platform);
 	}
 
 	get FAL_API_KEY(): string | undefined {
@@ -134,8 +124,6 @@ export class Environment {
 	toConfig(): EnvConfig {
 		return {
 			DATABASE_URL: this.DATABASE_URL,
-			OPENAI_API_KEY: this.OPENAI_API_KEY,
-			OPENAI_ORG: this.OPENAI_ORG,
 			FAL_API_KEY: this.FAL_API_KEY,
 			SESSION_SECRET: this.SESSION_SECRET,
 			CLOUDFLARE_API_TOKEN: this.CLOUDFLARE_API_TOKEN,
@@ -152,17 +140,11 @@ export class Environment {
 export const env = new Environment();
 
 // Legacy compatibility exports (will be removed in future versions)
-export const OPENAI_API_KEY = env.OPENAI_API_KEY;
-export const OPENAI_ORG = env.OPENAI_ORG;
 export const FAL_API_KEY = env.FAL_API_KEY;
 export const DATABASE_URL = env.DATABASE_URL;
 export const SESSION_SECRET = env.SESSION_SECRET;
 
 // Legacy function exports for backwards compatibility
-export function getOpenAIKey(platform?: any): string | undefined {
-	return new Environment(platform).OPENAI_API_KEY;
-}
-
 export function getDatabaseUrl(platform?: any): string {
 	return new Environment(platform).DATABASE_URL;
 }

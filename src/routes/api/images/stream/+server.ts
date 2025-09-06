@@ -1,5 +1,5 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { unifiedImageGenerator } from '$lib/server/ai/unified-image-generator';
+import { imageGenerator } from '$lib/server/ai/simple-image-generator';
 import { object, string, optional, parse } from 'valibot';
 
 // Validation schema for streaming request
@@ -35,47 +35,42 @@ export async function POST(event: RequestEvent) {
 
 				try {
 					// Start image generation with streaming
-					// Use Fal.ai as primary (93% cheaper than OpenAI)
-					const imageStream = unifiedImageGenerator.generateImageStream({
+					// Using Fal.ai nano-banana (94% cheaper than OpenAI)
+					const imageStream = imageGenerator.generateImageStream({
 						prompt: validatedBody.prompt,
-						mode: 'fal', // Use Fal.ai FLUX model
-						size: '1024x1024', // Square format
-						quality: 'medium', // Medium quality for better results
-						partialImages: 2, // Show progress with partial images
-						stream: true
+						personaId: validatedBody.personaId,
+						tableId: validatedBody.tableId
 					});
 
 					let partialCount = 0;
 
 					// Process streaming events
 					for await (const event of imageStream) {
-						if (event.type === 'partial_image') {
+						if (event.type === 'partial') {
 							partialCount++;
-							// Send partial image event
+							// Send partial progress event
 							const data = JSON.stringify({
 								type: 'partial',
-								index: event.partialImageIndex ?? partialCount,
-								image: event.imageBase64,
+								index: partialCount,
 								progress: event.progress,
 								timestamp: Date.now()
 							});
 
-							controller.enqueue(encoder.encode(`event: partial_image\n`));
+							controller.enqueue(encoder.encode(`event: partial\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
 						} else if (event.type === 'completed') {
-							// Send completion event with full image
+							// Send completion event with image URL
 							const data = JSON.stringify({
 								type: 'completed',
-								image: event.imageBase64 || '', // Ensure we have image data
-								responseId: event.responseId, // Store for multi-turn editing
+								imageUrl: event.imageUrl || '',
 								personaId: validatedBody.personaId,
 								tableId: validatedBody.tableId,
 								timestamp: Date.now()
 							});
 
 							// Check if we actually have image data
-							if (!event.imageBase64) {
-								console.error('No image data in completed event');
+							if (!event.imageUrl) {
+								console.error('No image URL in completed event');
 							}
 
 							controller.enqueue(encoder.encode(`event: completed\n`));
