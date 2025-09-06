@@ -10,15 +10,20 @@ export async function GET(event: RequestEvent) {
 	
 	// Method 1: Direct access
 	if (platform?.env?.FAL_API_KEY) {
-		falKeyStatus = 'Found via platform.env';
+		falKeyStatus = 'Found via platform.env.FAL_API_KEY';
 		falKeyLength = platform.env.FAL_API_KEY.length;
 	}
-	// Method 2: Check if it's in the context
+	// Method 2: With trailing space (Cloudflare bug)
+	else if (platform?.env?.['FAL_API_KEY ']) {
+		falKeyStatus = 'Found via platform.env["FAL_API_KEY "] (with trailing space)';
+		falKeyLength = platform.env['FAL_API_KEY '].length;
+	}
+	// Method 3: Check if it's in the context
 	else if (platform?.context?.FAL_API_KEY) {
 		falKeyStatus = 'Found via platform.context';
 		falKeyLength = platform.context.FAL_API_KEY.length;
 	}
-	// Method 3: Check process env (shouldn't work in Cloudflare)
+	// Method 4: Check process env (shouldn't work in Cloudflare)
 	else if (typeof process !== 'undefined' && process.env?.FAL_API_KEY) {
 		falKeyStatus = 'Found via process.env';
 		falKeyLength = process.env.FAL_API_KEY.length;
