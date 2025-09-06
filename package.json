@@ -54,6 +54,7 @@
 		"wrangler": "^4.33.2"
 	},
 	"dependencies": {
+		"@fal-ai/client": "^1.2.0",
 		"@libsql/client": "^0.14.0",
 		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.40.0",

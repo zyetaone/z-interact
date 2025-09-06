@@ -31,10 +31,9 @@ export class ResponsesImageGenerator {
 
 	constructor() {
 		if (env.OPENAI_API_KEY) {
-			this.client = new OpenAI({
-				apiKey: env.OPENAI_API_KEY,
-				organization: 'org-8AcAiOJN1MohBYWCzoqnQZtK'
-			});
+			const config: any = { apiKey: env.OPENAI_API_KEY };
+			if (env.OPENAI_ORG) config.organization = env.OPENAI_ORG;
+			this.client = new OpenAI(config);
 		}
 	}
 
@@ -60,7 +59,7 @@ export class ResponsesImageGenerator {
 							type: 'previous_response',
 							id: options.previousResponseId
 						}
-				  ]
+					]
 				: options.prompt;
 
 			// Use the responses.create API with image_generation tool
@@ -107,9 +106,7 @@ export class ResponsesImageGenerator {
 	/**
 	 * Generate image with streaming support
 	 */
-	async *generateImageStream(
-		options: ResponsesImageOptions
-	): AsyncGenerator<ResponsesStreamEvent> {
+	async *generateImageStream(options: ResponsesImageOptions): AsyncGenerator<ResponsesStreamEvent> {
 		if (!this.client) {
 			yield {
 				type: 'error',
@@ -178,10 +175,7 @@ export class ResponsesImageGenerator {
 	/**
 	 * Perform a follow-up edit on a previous image
 	 */
-	async editImage(
-		previousResponseId: string,
-		editPrompt: string
-	): Promise<ResponsesImageResult> {
+	async editImage(previousResponseId: string, editPrompt: string): Promise<ResponsesImageResult> {
 		return this.generateImage({
 			prompt: editPrompt,
 			previousResponseId: previousResponseId,
