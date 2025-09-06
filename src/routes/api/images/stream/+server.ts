@@ -1,6 +1,10 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { imageGenerator } from '$lib/server/ai/simple-image-generator';
 import { object, string, optional, parse } from 'valibot';
+import { createR2Storage, R2Storage } from '$lib/server/r2-storage';
+import { getDb } from '$lib/server/db';
+import { images } from '$lib/server/db/schema';
+import type { NewImage } from '$lib/server/db/schema';
 
 // Validation schema for streaming request
 const streamRequestSchema = object({
@@ -33,6 +37,19 @@ export async function POST(event: RequestEvent) {
 			async start(controller) {
 				const encoder = new TextEncoder();
 
+				// Check if image generator is configured
+				if (!imageGenerator.isAvailable()) {
+					const errorData = JSON.stringify({
+						type: 'error',
+						error: 'Fal.ai not configured. Please set FAL_API_KEY environment variable.',
+						timestamp: Date.now()
+					});
+					controller.enqueue(encoder.encode(`event: error\n`));
+					controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+					controller.close();
+					return;
+				}
+
 				try {
 					// Start image generation with streaming
 					// Using Fal.ai nano-banana (94% cheaper than OpenAI)
@@ -59,19 +76,62 @@ export async function POST(event: RequestEvent) {
 							controller.enqueue(encoder.encode(`event: partial\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));
 						} else if (event.type === 'completed') {
-							// Send completion event with image URL
+							let finalImageUrl = event.imageUrl || '';
+							
+							// Check if we actually have image data
+							if (!event.imageUrl) {
+								console.error('No image URL in completed event');
+							} else {
+								try {
+									// Upload to R2 for permanent storage
+									const r2Storage = createR2Storage(event.platform);
+									const filename = R2Storage.generateFilename(validatedBody.personaId, 'png');
+									
+									console.log('Uploading to R2 storage from streaming...');
+									const uploadResult = await r2Storage.uploadImageFromUrl(event.imageUrl, filename);
+									
+									if (uploadResult.success && uploadResult.url) {
+										finalImageUrl = uploadResult.url;
+										console.log('Image uploaded to R2 successfully:', finalImageUrl);
+										
+										// Save to database
+										const database = getDb(event.platform);
+										const newImage: NewImage = {
+											id: crypto.randomUUID(),
+											tableId: validatedBody.tableId || null,
+											personaId: validatedBody.personaId,
+											personaTitle: validatedBody.personaId
+												.replace('-', ' ')
+												.replace(/\b\w/g, (l) => l.toUpperCase()),
+											sessionId: null,
+											participantId: null,
+											imageUrl: finalImageUrl,
+											prompt: validatedBody.prompt,
+											provider: 'fal.ai/nano-banana',
+											status: 'completed',
+											createdAt: new Date(),
+											updatedAt: new Date()
+										};
+										
+										await database.insert(images).values(newImage);
+										console.log('Image saved to database from streaming');
+									} else {
+										console.warn('R2 upload failed in streaming, using Fal.ai URL:', uploadResult.error);
+									}
+								} catch (error) {
+									console.error('Failed to upload to R2 or save to DB in streaming:', error);
+									// Continue with original Fal.ai URL
+								}
+							}
+							
+							// Send completion event with final URL
 							const data = JSON.stringify({
 								type: 'completed',
-								imageUrl: event.imageUrl || '',
+								imageUrl: finalImageUrl,
 								personaId: validatedBody.personaId,
 								tableId: validatedBody.tableId,
 								timestamp: Date.now()
 							});
-
-							// Check if we actually have image data
-							if (!event.imageUrl) {
-								console.error('No image URL in completed event');
-							}
 
 							controller.enqueue(encoder.encode(`event: completed\n`));
 							controller.enqueue(encoder.encode(`data: ${data}\n\n`));

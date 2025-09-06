@@ -252,6 +252,9 @@
 	async function generateImageWithStreaming(prompt: string) {
 		if (!persona) return;
 
+		// Set loading state immediately
+		workspaceStore.setGenerating(persona.id, true);
+
 		// Reset state
 		partialImage = null;
 		generatedImage = null;
@@ -331,8 +334,10 @@
 								generatedImage = finalImageUrl;
 								partialImage = null;
 								streamProgress = 100;
+								workspaceStore.setGenerating(persona.id, false);
 								toastStore.success('Image generated successfully!');
 							} else if (data.type === 'error') {
+								workspaceStore.setGenerating(persona.id, false);
 								throw new Error(data.error || 'Generation failed');
 							}
 						} catch (e) {
@@ -343,6 +348,7 @@
 			}
 		} catch (error) {
 			console.error('Streaming generation failed:', error);
+			workspaceStore.setGenerating(persona.id, false);
 			toastStore.error('Failed to generate image. Please try again.');
 			partialImage = null;
 			streamProgress = 0;
