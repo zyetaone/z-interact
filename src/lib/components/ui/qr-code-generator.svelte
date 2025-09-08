@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import QRCode from 'qrcode';
 
 	interface QRCodeGeneratorProps {
@@ -14,11 +13,7 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	onMount(async () => {
-		await generateQRCode();
-	});
-
-	// Regenerate QR code when URL changes
+	// Generate QR code reactively when URL changes or component mounts
 	$effect(() => {
 		if (url) {
 			generateQRCode();

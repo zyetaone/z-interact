@@ -225,6 +225,36 @@ GET /api/sse
 ### Image Storage
 
 ```http
+# Image Management API (Split Endpoints)
+
+# Generate new images using AI
+POST /api/images/generate
+Content-Type: application/json
+
+{
+  "prompt": "Architectural visualization of a modern workspace",
+  "personaId": "baby-boomer",
+  "tableId": "1"
+}
+
+# Save existing images to database
+POST /api/images/save
+Content-Type: application/json
+
+{
+  "personaId": "baby-boomer",
+  "imageUrl": "https://example.com/image.png",
+  "prompt": "Modern workspace visualization",
+  "tableId": "1"
+}
+
+# List all locked images
+GET /api/images/list
+
+# Clear all images (database + R2 storage)
+DELETE /api/images/clear
+
+# Legacy compatibility endpoints (redirect to focused endpoints)
 GET /api/images
 POST /api/images
 DELETE /api/images

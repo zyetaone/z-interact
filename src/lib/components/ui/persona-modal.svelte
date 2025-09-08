@@ -44,81 +44,73 @@
 			updatePersonaTitle(persona.id, editTitle.trim());
 			updatePersonaDescription(persona.id, editDescription.trim());
 			isEditing = false;
-			toastStore.success('Persona updated successfully', 3000);
+			toastStore.success('Persona updated successfully');
 		} else {
-			toastStore.error('Title and description cannot be empty', 3000);
+			toastStore.error('Title and description cannot be empty');
 		}
+	}
+
+	function handleClose() {
+		cancelEditing();
+		open = false;
 	}
 </script>
 
-{#if persona}
-	<Modal
-		bind:open
-		title={isEditing ? `Edit ${persona.title}` : persona.title}
-		size="xl"
-		outsideclose
-	>
-		<div class="space-y-6">
+<Modal bind:open title={persona?.title || 'Persona Details'} size="md">
+	{#if persona}
+		<div class="space-y-4">
 			{#if isEditing}
-				<!-- Edit Form -->
+				<!-- Edit Mode -->
 				<div class="space-y-4">
 					<div>
-						<Label for="edit-title" class="mb-2">Title</Label>
-						<Input id="edit-title" bind:value={editTitle} placeholder="Enter persona title" />
+						<Label for="title" class="mb-2">Title</Label>
+						<Input
+							id="title"
+							bind:value={editTitle}
+							placeholder="Enter persona title"
+							class="w-full"
+						/>
 					</div>
 					<div>
-						<Label for="edit-description" class="mb-2">Description</Label>
+						<Label for="description" class="mb-2">Description</Label>
 						<Textarea
-							id="edit-description"
+							id="description"
 							bind:value={editDescription}
+							rows={6}
 							placeholder="Enter persona description"
-							rows={4}
 							class="w-full"
 						/>
 					</div>
 				</div>
 			{:else}
 				<!-- View Mode -->
-				<div>
-					<h3 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white">Description</h3>
-					<p class="text-gray-600 dark:text-gray-300">{persona.description}</p>
-				</div>
-
-				<!-- Prompt Structure -->
-				<div>
-					<h3 class="mb-3 text-lg font-semibold text-gray-800 dark:text-white">Form Structure</h3>
-					<div class="space-y-2">
-						{#each persona.promptStructure as item}
-							<div class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
-								<span class="min-w-0 flex-1 font-medium text-gray-800 dark:text-white">
-									{item.label}
-								</span>
-								<span class="font-mono text-sm text-gray-500 dark:text-gray-400">
-									{item.field}
-								</span>
-							</div>
-						{/each}
+				<div class="space-y-3">
+					<div>
+						<h3 class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Title</h3>
+						<p class="text-gray-900 dark:text-white">{persona.title}</p>
+					</div>
+					<div>
+						<h3 class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Description</h3>
+						<p class="text-gray-700 dark:text-gray-300">{persona.description}</p>
+					</div>
+					<div>
+						<h3 class="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Persona ID</h3>
+						<code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-800">{persona.id}</code>
 					</div>
 				</div>
 			{/if}
 		</div>
 
 		{#snippet footer()}
-			<div class="flex w-full justify-between">
-				<div>
-					{#if !isEditing}
-						<Button color="primary" onclick={startEditing}>Edit Persona</Button>
-					{/if}
-				</div>
-				<div class="flex gap-2">
-					{#if isEditing}
-						<Button color="alternative" onclick={cancelEditing}>Cancel</Button>
-						<Button color="primary" onclick={saveChanges}>Save Changes</Button>
-					{:else}
-						<Button onclick={() => (open = false)}>Close</Button>
-					{/if}
-				</div>
+			<div class="flex justify-between">
+				{#if isEditing}
+					<Button onclick={cancelEditing} color="alternative">Cancel</Button>
+					<Button onclick={saveChanges}>Save Changes</Button>
+				{:else}
+					<Button onclick={handleClose} color="alternative">Close</Button>
+					<Button onclick={startEditing}>Edit</Button>
+				{/if}
 			</div>
 		{/snippet}
-	</Modal>
-{/if}
+	{/if}
+</Modal>

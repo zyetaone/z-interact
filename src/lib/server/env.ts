@@ -2,6 +2,7 @@
 // Provides type-safe, platform-compatible access to all environment variables
 
 import { env as svelteEnv } from '$env/dynamic/private';
+import type { Platform } from '$lib/types';
 
 // Environment interface for type safety
 export interface EnvConfig {
@@ -33,10 +34,11 @@ function isCloudflareWorkers(): boolean {
 }
 
 // Unified environment accessor with platform compatibility
-function getEnvValue(key: string, platform?: any): string | undefined {
+function getEnvValue(key: string, platform?: Platform): string | undefined {
 	// Cloudflare Workers environment
 	if (platform?.env?.[key]) {
-		return platform.env[key];
+		const value = platform.env[key];
+		return typeof value === 'string' ? value : undefined;
 	}
 
 	// Node.js/process.env (for scripts and config files)
@@ -54,9 +56,9 @@ function getEnvValue(key: string, platform?: any): string | undefined {
 
 // Main environment configuration class
 export class Environment {
-	private platform?: any;
+	private platform?: Platform;
 
-	constructor(platform?: any) {
+	constructor(platform?: Platform) {
 		this.platform = platform;
 	}
 

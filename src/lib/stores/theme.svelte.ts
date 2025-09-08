@@ -62,4 +62,10 @@ class ThemeStore {
 	}
 }
 
+// Factory function for creating new store instances
+export function createThemeStore() {
+	return new ThemeStore();
+}
+
+// Singleton instance for backward compatibility
 export const themeStore = new ThemeStore();

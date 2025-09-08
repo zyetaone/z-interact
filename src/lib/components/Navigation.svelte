@@ -1,24 +1,30 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { getContext } from 'svelte';
+	import { globalConfig } from '$lib/config.svelte';
+
+	// Props
+	let { onRefresh = null }: { onRefresh?: (() => void) | null } = $props();
 
 	// Get app context for shared state
 	const appContext = getContext('app-context') as { currentPath: () => string } | undefined;
 
-	// Use context if available, fallback to direct page store
-	let currentPath = $derived(appContext ? appContext.currentPath() : $page.url.pathname);
+	// Use context if available, fallback to direct page state
+	let currentPath = $derived(appContext ? appContext.currentPath() : page.url.pathname);
 
 	function isActive(path: string) {
 		return currentPath === path;
 	}
 
 	function getPageTitle(): string {
-		if (currentPath === '/admin') return 'Z-Interact - Admin';
+		const eventName = globalConfig.eventInfo.name;
+		if (currentPath === '/admin') return `${eventName} - Admin`;
 		if (currentPath === '/gallery' || currentPath.startsWith('/gallery/'))
-			return 'Z-Interact - Gallery';
-		return 'Z-Interact';
+			return eventName;
+		return eventName;
 	}
 
 	// Hide navigation on table pages for better focus
@@ -32,25 +38,46 @@
 		class="fixed top-0 right-0 left-0 z-50 border-b-2 border-blue-300 bg-white shadow-lg dark:border-blue-600 dark:bg-gray-900"
 	>
 		<div class="flex items-center justify-between px-6 py-3">
-			<!-- Left: Dynamic Page Title -->
+			<!-- Left: Zyeta Logo and Title -->
 			<div class="flex items-center">
 				<button
-					onclick={() => goto('/gallery')}
-					class="cursor-pointer text-lg font-bold text-gray-800 transition-colors hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
+					onclick={() => goto(`${base}/gallery`)}
+					class="flex cursor-pointer items-center gap-2 text-lg font-bold text-gray-800 transition-colors hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
 				>
-					{getPageTitle()}
+					<!-- Zyeta Logo from favicon.svg -->
+					<img src="/favicon.svg" alt="Zyeta Logo" class="h-6 w-6 invert filter dark:invert-0" />
+					<span class="text-sm font-semibold">{globalConfig.eventInfo.name}</span>
 				</button>
 			</div>
 
 			<!-- Right: Navigation -->
-			<div class="flex items-center">
+			<div class="flex items-center gap-1">
+				{#if onRefresh && (currentPath === '/gallery' || currentPath === '/' || currentPath.startsWith('/gallery/'))}
+					<!-- Refresh button for gallery page -->
+					<Button
+						variant="ghost"
+						size="sm"
+						class="rounded-md p-2 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+						onclick={onRefresh}
+						title="Refresh Gallery"
+					>
+						<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+							/>
+						</svg>
+					</Button>
+				{/if}
 				{#if currentPath === '/admin'}
 					<!-- Show Gallery Icon when on Admin page -->
 					<Button
 						variant="ghost"
 						size="sm"
 						class="rounded-md p-2 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
-						onclick={() => goto('/gallery')}
+						onclick={() => goto(`${base}/gallery`)}
 						title="Go to Gallery"
 					>
 						<svg
@@ -73,7 +100,7 @@
 						variant="ghost"
 						size="sm"
 						class="rounded-md p-2 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
-						onclick={() => goto('/admin')}
+						onclick={() => goto(`${base}/admin`)}
 						title="Go to Admin"
 					>
 						<svg

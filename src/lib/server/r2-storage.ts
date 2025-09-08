@@ -1,4 +1,5 @@
-import type { Platform } from './db';
+import type { Platform } from '$lib/types';
+import { logger, devLog } from '$lib/utils/logger';
 
 export interface R2UploadResult {
 	success: boolean;
@@ -31,7 +32,12 @@ export class R2Storage {
 				throw new Error('R2_PUBLIC_URL not configured');
 			}
 
-			console.log('Downloading image from:', imageUrl);
+			devLog('Downloading image from URL', {
+				component: 'R2Storage',
+				operation: 'upload_from_url',
+				url: imageUrl?.substring(0, 50),
+				filename
+			});
 
 			// Download the image from the source URL
 			const response = await fetch(imageUrl);
@@ -42,10 +48,15 @@ export class R2Storage {
 			const imageBuffer = await response.arrayBuffer();
 			const contentType = response.headers.get('content-type') || 'image/png';
 
-			console.log('Uploading to R2 with filename:', filename);
+			devLog('Uploading to R2 bucket', {
+				component: 'R2Storage',
+				operation: 'upload_from_url',
+				filename,
+				size: imageBuffer.byteLength
+			});
 
 			// Upload to R2 bucket
-			const r2Object = await this.platform.env.R2_IMAGES.put(filename, imageBuffer, {
+			const r2Object = await (this.platform.env.R2_IMAGES as any).put(filename, imageBuffer, {
 				httpMetadata: {
 					contentType,
 					cacheControl: 'public, max-age=31536000' // Cache for 1 year
@@ -63,7 +74,11 @@ export class R2Storage {
 			// Construct the public URL
 			const publicUrl = `${this.platform.env.R2_PUBLIC_URL}/${filename}`;
 
-			console.log('Image uploaded successfully to:', publicUrl);
+			devLog('Image uploaded successfully', {
+				component: 'R2Storage',
+				operation: 'upload_from_url',
+				publicUrl
+			});
 
 			return {
 				success: true,
@@ -71,7 +86,14 @@ export class R2Storage {
 				key: filename
 			};
 		} catch (error) {
-			console.error('R2 upload failed:', error);
+			logger.error(
+				'R2 upload from URL failed',
+				{
+					component: 'R2Storage',
+					operation: 'upload_from_url'
+				},
+				error instanceof Error ? error : new Error(String(error))
+			);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -96,15 +118,25 @@ export class R2Storage {
 				throw new Error('R2_PUBLIC_URL not configured');
 			}
 
-			console.log('Converting base64 to buffer for:', filename);
+			devLog('Converting base64 to buffer', {
+				component: 'R2Storage',
+				operation: 'upload_from_base64',
+				filename,
+				dataSize: base64Data.length
+			});
 
 			// Convert base64 to buffer
 			const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-			console.log('Uploading to R2 with filename:', filename);
+			devLog('Uploading base64 data to R2', {
+				component: 'R2Storage',
+				operation: 'upload_from_base64',
+				filename,
+				bufferSize: imageBuffer.length
+			});
 
 			// Upload to R2 bucket
-			const r2Object = await this.platform.env.R2_IMAGES.put(filename, imageBuffer, {
+			const r2Object = await (this.platform.env.R2_IMAGES as any).put(filename, imageBuffer, {
 				httpMetadata: {
 					contentType: 'image/png',
 					cacheControl: 'public, max-age=31536000' // Cache for 1 year
@@ -122,7 +154,11 @@ export class R2Storage {
 			// Construct the public URL
 			const publicUrl = `${this.platform.env.R2_PUBLIC_URL}/${filename}`;
 
-			console.log('Image uploaded successfully to:', publicUrl);
+			devLog('Base64 image uploaded successfully', {
+				component: 'R2Storage',
+				operation: 'upload_from_base64',
+				publicUrl
+			});
 
 			return {
 				success: true,
@@ -130,7 +166,85 @@ export class R2Storage {
 				key: filename
 			};
 		} catch (error) {
-			console.error('R2 upload failed:', error);
+			logger.error(
+				'R2 upload from URL failed',
+				{
+					component: 'R2Storage',
+					operation: 'upload_from_url'
+				},
+				error instanceof Error ? error : new Error(String(error))
+			);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Upload an image to R2 storage from a buffer
+	 * @param buffer - The image data as Uint8Array
+	 * @param filename - The desired filename for the stored image
+	 * @param contentType - The MIME type of the image
+	 * @returns R2UploadResult with the permanent URL
+	 */
+	async uploadImageFromBuffer(
+		buffer: Uint8Array,
+		filename: string,
+		contentType: string = 'image/png'
+	): Promise<R2UploadResult> {
+		try {
+			// Check if R2 is configured
+			if (!this.platform?.env?.R2_IMAGES) {
+				throw new Error('R2_IMAGES bucket not configured');
+			}
+
+			if (!this.platform?.env?.R2_PUBLIC_URL) {
+				throw new Error('R2_PUBLIC_URL not configured');
+			}
+
+			devLog('Uploading image buffer to R2', {
+				component: 'R2Storage',
+				operation: 'upload_from_buffer',
+				filename,
+				size: buffer.length
+			});
+
+			// Upload to R2
+			const r2Bucket = this.platform.env.R2_IMAGES as any;
+			const r2Object = await r2Bucket.put(filename, buffer, {
+				httpMetadata: {
+					contentType
+				}
+			});
+
+			if (!r2Object) {
+				throw new Error('Failed to upload to R2 bucket');
+			}
+
+			// Construct the public URL
+			const publicUrl = `${this.platform.env.R2_PUBLIC_URL}/${filename}`;
+
+			devLog('Buffer image uploaded successfully', {
+				component: 'R2Storage',
+				operation: 'upload_from_buffer',
+				publicUrl
+			});
+
+			return {
+				success: true,
+				url: publicUrl,
+				key: filename
+			};
+		} catch (error) {
+			logger.error(
+				'R2 upload from buffer failed',
+				{
+					component: 'R2Storage',
+					operation: 'upload_from_buffer'
+				},
+				error instanceof Error ? error : new Error(String(error))
+			);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -148,11 +262,23 @@ export class R2Storage {
 				throw new Error('R2_IMAGES bucket not configured');
 			}
 
-			await this.platform.env.R2_IMAGES.delete(filename);
-			console.log('Image deleted from R2:', filename);
+			await (this.platform.env.R2_IMAGES as any).delete(filename);
+			devLog('Image deleted from R2', {
+				component: 'R2Storage',
+				operation: 'delete_image',
+				filename
+			});
 			return true;
 		} catch (error) {
-			console.error('Failed to delete from R2:', error);
+			logger.error(
+				'Failed to delete from R2',
+				{
+					component: 'R2Storage',
+					operation: 'delete_image',
+					filename
+				},
+				error instanceof Error ? error : new Error(String(error))
+			);
 			return false;
 		}
 	}
@@ -171,4 +297,14 @@ export class R2Storage {
 
 export function createR2Storage(platform: Platform): R2Storage {
 	return new R2Storage(platform);
+}
+
+// Helper to extract an R2 object key from a public URL
+export function extractR2KeyFromUrl(publicBase: string, url: string): string | null {
+	if (!publicBase || !url) return null;
+	const base = publicBase.endsWith('/') ? publicBase.slice(0, -1) : publicBase;
+	if (!url.startsWith(base)) return null;
+	let key = url.slice(base.length);
+	if (key.startsWith('/')) key = key.slice(1);
+	return key || null;
 }

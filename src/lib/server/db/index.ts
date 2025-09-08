@@ -3,10 +3,11 @@ import { drizzle as drizzleLibSQL } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
 import { env } from '../env';
+import { logger } from '$lib/utils/logger';
+import type { Platform } from '$lib/types';
 
 // Database connection types
 type DatabaseConnection = ReturnType<typeof drizzleD1 | typeof drizzleLibSQL>;
-type Platform = { env?: Record<string, any> } | undefined;
 
 /**
  * Creates a database connection based on the environment
@@ -19,7 +20,9 @@ export function getDb(platform?: Platform): DatabaseConnection {
 		typeof process !== 'undefined' &&
 		(process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
 
-	console.log('Database connection attempt:', {
+	logger.info('Database connection attempt', {
+		component: 'Database',
+		operation: 'connection_init',
 		isCloudflare,
 		isDevelopment,
 		hasPlatform: !!platform,
@@ -31,7 +34,10 @@ export function getDb(platform?: Platform): DatabaseConnection {
 		if (!platform?.env?.z_interact_db) {
 			throw new Error('D1 database binding "z_interact_db" not found in Cloudflare environment');
 		}
-		console.log('Using D1 database connection');
+		logger.info('Using D1 database connection', {
+			component: 'Database',
+			operation: 'connection_init'
+		});
 		return drizzleD1(platform.env.z_interact_db, { schema });
 	}
 
@@ -39,7 +45,11 @@ export function getDb(platform?: Platform): DatabaseConnection {
 	if (isDevelopment) {
 		try {
 			const client = createClient({ url: env.DATABASE_URL });
-			console.log('Using libSQL database connection:', env.DATABASE_URL);
+			logger.info('Using libSQL database connection', {
+				component: 'Database',
+				operation: 'connection_init',
+				databaseUrl: env.DATABASE_URL?.substring(0, 30) + '...'
+			});
 			return drizzleLibSQL(client, { schema });
 		} catch (error) {
 			throw new Error(
@@ -50,14 +60,21 @@ export function getDb(platform?: Platform): DatabaseConnection {
 
 	// Production Node.js - prefer D1 if available, fallback to libSQL
 	if (platform?.env?.z_interact_db) {
-		console.log('Using D1 database connection in production');
+		logger.info('Using D1 database connection in production', {
+			component: 'Database',
+			operation: 'connection_init'
+		});
 		return drizzleD1(platform.env.z_interact_db, { schema });
 	}
 
 	// Final fallback for production without platform binding
 	try {
 		const client = createClient({ url: env.DATABASE_URL });
-		console.log('Using libSQL fallback in production:', env.DATABASE_URL);
+		logger.info('Using libSQL fallback in production', {
+			component: 'Database',
+			operation: 'connection_init',
+			databaseUrl: env.DATABASE_URL?.substring(0, 30) + '...'
+		});
 		return drizzleLibSQL(client, { schema });
 	} catch (error) {
 		throw new Error(

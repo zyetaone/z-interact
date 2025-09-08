@@ -14,6 +14,7 @@ migrations_dir = "drizzle"
 [[r2_buckets]]
 binding = "R2_IMAGES"
 bucket_name = "r2-store"
+# jurisdiction = "eu"  # Optional: specify jurisdiction if needed
 
 # Environment variables
 [vars]

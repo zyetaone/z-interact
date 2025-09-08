@@ -15,7 +15,7 @@ class ToastStore {
 	}
 
 	show(message: string, type: ToastType = 'info', duration = 3000) {
-		const id = Math.random().toString(36).substr(2, 9);
+		const id = Math.random().toString(36).substring(2, 11);
 		const toast: Toast = { id, message, type, duration };
 
 		this.toasts = [...this.toasts, toast];
@@ -54,4 +54,10 @@ class ToastStore {
 	}
 }
 
+// Factory function for creating new store instances
+export function createToastStore() {
+	return new ToastStore();
+}
+
+// Singleton instance for backward compatibility
 export const toastStore = new ToastStore();

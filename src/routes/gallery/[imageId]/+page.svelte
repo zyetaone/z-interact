@@ -1,40 +1,29 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui';
-
-	// Define image type
-	interface GalleryImage {
-		id: string;
-		personaId: string;
-		personaTitle: string;
-		imageUrl: string;
-		imageData?: string;
-		imageMimeType?: string;
-		prompt: string;
-		provider: string;
-		createdAt: string;
-		error?: string;
-	}
+	import { base } from '$app/paths';
+	import { getImageById } from '../gallery.remote';
+	import ImageWithLoader from '$lib/components/ui/image-with-loader.svelte';
+	import type { GalleryImage } from '$lib/types';
+	import { formatDate, downloadImage, openFullscreen, getTableDisplayName } from '$lib/utils/image-utils';
+	import { DownloadOutline, ExpandOutline } from 'flowbite-svelte-icons';
 
 	// Use $state for reactive values
 	let image = $state<GalleryImage | null>(null);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 
-	// Get imageId from page params
-	const imageId = $page.params.imageId;
+	// Get imageId from page params reactively
+	const imageId = $derived(page.params.imageId || '');
 
 	// Fetch image data
 	async function fetchImage() {
 		try {
-			const response = await fetch('/api/images');
-			if (!response.ok) {
-				throw new Error('Failed to fetch images');
+			// Use API route to get specific image
+			if (!imageId) {
+				throw new Error('Invalid image ID');
 			}
-			const images = await response.json();
-			const foundImage = images.find((img: any) => img.id === imageId);
+			const foundImage = await getImageById({ imageId });
 
 			if (!foundImage) {
 				throw new Error('Image not found');
@@ -49,19 +38,14 @@
 	}
 
 	// Get the best available image URL (stored > original)
-	function getImageUrl(image: any): string {
-		// If we have stored image data, use our API endpoint
-		if (image.imageData && image.imageMimeType) {
-			return `/api/images/${image.id}`;
-		}
-
-		// Fall back to stored URL if available
+	function getImageUrl(image: GalleryImage): string {
+		// Prefer stored URL
 		if (image.imageUrl && !isImageExpired(image.imageUrl)) {
 			return image.imageUrl;
 		}
 
-		// Last resort: use our API endpoint even if no data (will redirect)
-		return `/api/images/${image.id}`;
+		// No other fallback once API routes are removed
+		return '';
 	}
 
 	// Check if image URL is expired (for temporary URLs)
@@ -91,18 +75,20 @@
 		}
 	}
 
-	// Fetch image when component mounts
-	onMount(() => {
-		fetchImage();
+	// Fetch image reactively when imageId changes
+	$effect(() => {
+		if (imageId) {
+			fetchImage();
+		}
 	});
 
 	function goBack() {
-		goto('/gallery');
+		goto(`${base}/gallery`);
 	}
 
 	// Format prompt into structured sections
 	function formatPrompt(prompt: string) {
-		const sections: any[] = [];
+		const sections: { type: string; title?: string; content: string; items?: string[] }[] = [];
 
 		// Split prompt into lines
 		const lines = prompt.split('\n').filter((line) => line.trim());
@@ -141,6 +127,7 @@
 					sections.push({
 						type: 'requirements',
 						title: 'Core design requirements:',
+						content: 'Core design requirements:',
 						items: requirementsItems
 					});
 					inRequirements = false;
@@ -172,6 +159,7 @@
 			sections.push({
 				type: 'requirements',
 				title: 'Core design requirements:',
+				content: 'Core design requirements:',
 				items: requirementsItems
 			});
 		}
@@ -198,7 +186,7 @@
 	<!-- Floating Back Button -->
 	<button
 		onclick={goBack}
-		class="glass-morphism smooth-transition fixed top-6 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full hover:scale-110 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+		class="glass-morphism smooth-transition fixed top-20 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full hover:scale-110 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 		aria-label="Back to Gallery"
 		title="Back to Gallery"
 	>
@@ -211,6 +199,31 @@
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 		</svg>
 	</button>
+
+	<!-- Floating Action Buttons (Download & Fullscreen) -->
+	{#if image && !image.error}
+		<div class="fixed top-20 right-6 z-50 flex gap-3">
+			<!-- Download Button -->
+			<button
+				onclick={() => image && downloadImage(getImageUrl(image), `${getTableDisplayName(image.tableId)}-workspace.jpg`)}
+				class="glass-morphism smooth-transition flex h-12 w-12 items-center justify-center rounded-full hover:scale-110 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+				aria-label="Download Image"
+				title="Download Image"
+			>
+				<DownloadOutline class="h-5 w-5 text-gray-700 dark:text-gray-200" />
+			</button>
+
+			<!-- Fullscreen Button -->
+			<button
+				onclick={() => image && openFullscreen(getImageUrl(image), image.prompt)}
+				class="glass-morphism smooth-transition flex h-12 w-12 items-center justify-center rounded-full hover:scale-110 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+				aria-label="View Fullscreen"
+				title="View Fullscreen"
+			>
+				<ExpandOutline class="h-5 w-5 text-gray-700 dark:text-gray-200" />
+			</button>
+		</div>
+	{/if}
 
 	{#if isLoading}
 		<!-- Loading State -->
@@ -254,45 +267,52 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Hero Image Section -->
-				<div class="relative overflow-hidden">
-					<img
-						src={getImageUrl(image)}
-						alt="AI-generated workspace for {image.personaTitle}"
-						class="image-load h-screen w-full object-cover"
-						style="object-position: center;"
-						onload={(e) => (e.target as HTMLImageElement)?.classList.add('image-loaded')}
-						onerror={handleImageError}
-					/>
+				<!-- Hero Image Section with Blurred Background -->
+				<div class="relative h-screen overflow-hidden bg-black">
+					<!-- Blurred background image -->
+					<div class="absolute inset-0">
+						<ImageWithLoader
+							src={getImageUrl(image)}
+							alt="Background"
+							class="h-full w-full object-cover blur-2xl scale-110 opacity-60"
+						/>
+						<!-- Dark overlay for better contrast -->
+						<div class="absolute inset-0 bg-black/40"></div>
+					</div>
 
-					<!-- Image Overlay with Title -->
-					<div
-						class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
-					>
-						<div class="absolute right-0 bottom-0 left-0 p-8">
-							<div class="slide-up mx-auto max-w-4xl">
-								<h1 class="mb-4 text-4xl font-bold text-white md:text-5xl">
-									{image.personaTitle}
-								</h1>
-								<div class="flex flex-wrap items-center gap-4 text-white/90">
-									<div class="flex items-center gap-2">
-										<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-											/>
-										</svg>
-										<span class="text-lg"
-											>Generated {new Date(image.createdAt).toLocaleDateString()}</span
-										>
-									</div>
-									<div
-										class="rounded-full bg-white/20 px-4 py-2 text-lg font-medium backdrop-blur-sm"
-									>
-										🤖 {image.provider}
-									</div>
+					<!-- Centered square image -->
+					<div class="relative z-10 flex h-full items-center justify-center p-6">
+						<div class="h-[85vh] aspect-square max-w-[85vh]">
+							<ImageWithLoader
+								src={getImageUrl(image)}
+								alt="AI-generated workspace for {image.personaTitle}"
+								class="h-full w-full object-contain rounded-xl shadow-2xl"
+							/>
+						</div>
+					</div>
+
+					<!-- Title overlay at bottom -->
+					<div class="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent p-4">
+						<div class="slide-up mx-auto max-w-4xl">
+							<h1 class="mb-2 text-4xl font-bold text-white md:text-5xl">
+								{image.personaTitle}
+							</h1>
+							<div class="flex flex-wrap items-center gap-4 text-white/90">
+								<div class="flex items-center gap-2">
+									<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+									<span class="text-lg">Generated {formatDate(image.createdAt)}</span>
+								</div>
+								<div
+									class="rounded-full bg-white/20 px-4 py-2 text-lg font-medium backdrop-blur-sm"
+								>
+									{getTableDisplayName(image.tableId)}
 								</div>
 							</div>
 						</div>
@@ -331,7 +351,7 @@
 												<p class="mb-2 text-base font-semibold text-slate-700 dark:text-gray-300">
 													{section.title}
 												</p>
-												{#each section.items as item}
+												{#each section.items || [] as item}
 													<p
 														class="mb-1 pl-4 text-base leading-relaxed text-slate-900 dark:text-white"
 													>
@@ -378,7 +398,13 @@
 										🕒 Created
 									</h3>
 									<p class="text-lg text-slate-600 dark:text-gray-300">
-										{new Date(image.createdAt).toLocaleString()}
+										{new Date(image.createdAt).toLocaleString('en-US', {
+											year: 'numeric',
+											month: 'long',
+											day: 'numeric',
+											hour: '2-digit',
+											minute: '2-digit'
+										})}
 									</p>
 								</div>
 							</div>

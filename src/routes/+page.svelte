@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
-	// Redirect to gallery on mount
-	onMount(() => {
-		goto('/gallery', { replaceState: true });
+	// Redirect to gallery reactively
+	$effect(() => {
+		goto(`${base}/gallery`, { replaceState: true });
 	});
 </script>
 
