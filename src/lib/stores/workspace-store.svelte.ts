@@ -425,33 +425,7 @@ export async function syncWorkspaces(options: SyncOptions = {}) {
 }
 
 // Legacy sync function for backward compatibility
-export async function syncWorkspacesWithDatabase(
-	existingImages: Array<{
-		id: string;
-		tableId: string;
-		imageUrl: string;
-		prompt: string;
-		personaId: string;
-		createdAt?: number;
-	}>
-) {
-	logger.info('Syncing workspaces with database', {
-		component: 'WorkspaceStore',
-		count: existingImages.length
-	});
-
-	for (const img of existingImages) {
-		if (img.tableId && img.imageUrl) {
-			setWorkspaceGallery(img.tableId, img.imageUrl, img.prompt || '', null, false);
-			lockWorkspace(img.tableId);
-
-			logger.debug('Workspace synced with locked image', {
-				component: 'WorkspaceStore',
-				tableId: img.tableId
-			});
-		}
-	}
-}
+// Removed legacy syncWorkspacesWithDatabase (use syncWorkspaces instead)
 
 // Admin functions
 export function clearAllLocks() {

@@ -228,22 +228,7 @@
 						</div>
 					</div>
 
-					<!-- Apply Button -->
-					<div class="flex justify-end">
-						<Button
-							onclick={handleEdit}
-							disabled={!hasEditInstructions || isEditLoading || hasReachedLimit}
-							class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-						>
-							{#if isEditLoading}
-								<Spinner class="mr-2" size="4" />
-								Applying Changes...
-							{:else}
-								<EditOutline class="mr-2 h-4 w-4" />
-								Apply Changes
-							{/if}
-						</Button>
-					</div>
+					<!-- Action moved to sticky footer -->
 				{/if}
 			</div>
 		{:else}
@@ -291,16 +276,40 @@
 					</div>
 				</div>
 
-				<!-- Generate Button -->
-				<div class="flex justify-end">
-					<Button
-						onclick={handleRegenerate}
-						disabled={!hasRegeneratePrompt || isRegenerateLoading || hasReachedLimit}
-						class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-					>
+				<!-- Action moved to sticky footer -->
+			</div>
+		{/if}
+	</div>
+
+	{#snippet footer()}
+		<!-- Sticky footer with grouped actions -->
+		<div class="sticky bottom-0 w-full border-t border-gray-200 bg-white/90 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:border-gray-700 dark:bg-gray-900/90">
+			<div class="flex w-full items-center justify-end gap-2">
+				<Button
+					variant="outline"
+					onclick={onClose}
+					disabled={isEditLoading || isRegenerateLoading}
+					type="button"
+				>
+					Cancel
+				</Button>
+				<Button
+					onclick={() => (isEditMode ? handleEdit() : handleRegenerate())}
+					disabled={isEditMode
+						? !hasEditInstructions || isEditLoading || hasReachedLimit
+						: isRegenerateLoading || hasReachedLimit}
+					class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+					type="button"
+				>
+					{#if isEditMode}
+						{#if isEditLoading}
+							<Spinner class="mr-2" size="4" /> Applying Changes...
+						{:else}
+							<EditOutline class="mr-2 h-4 w-4" /> Apply Changes
+						{/if}
+					{:else}
 						{#if isRegenerateLoading}
-							<Spinner class="mr-2" size="4" />
-							Generating...
+							<Spinner class="mr-2" size="4" /> Generating...
 						{:else}
 							<PaletteOutline class="mr-2 h-4 w-4" />
 							{#if regenerateRequest.trim()}
@@ -309,17 +318,9 @@
 								Show Me Another Option
 							{/if}
 						{/if}
-					</Button>
-				</div>
+					{/if}
+				</Button>
 			</div>
-		{/if}
-	</div>
-
-	{#snippet footer()}
-		<div class="flex w-full justify-end">
-			<Button variant="outline" onclick={onClose} disabled={isEditLoading || isRegenerateLoading}>
-				Cancel
-			</Button>
 		</div>
 	{/snippet}
 </Modal>

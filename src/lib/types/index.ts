@@ -156,6 +156,7 @@ export interface GenerateImageRequest {
 	prompt: string;
 	personaId: string;
 	tableId?: string;
+	taskId?: string;
 }
 
 export interface SaveImageRequest {

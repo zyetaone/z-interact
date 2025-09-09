@@ -19,6 +19,8 @@
 		isEdited?: boolean;
 		isGenerating: boolean;
 		progress?: number;
+		progressStatus?: string;
+		progressMessage?: string;
 		persona: Persona;
 		formData: PromptFields;
 		isFormValid?: boolean;
@@ -34,6 +36,8 @@
 	const generatedImage = $derived(props.image);
 	const isGenerating = $derived(props.isGenerating);
 	const genProgress = $derived(props.progress);
+	const genStatus = $derived(props.progressStatus);
+	const genMessage = $derived(props.progressMessage);
 	const persona = $derived(props.persona);
 	const formData = $derived(props.formData);
 
@@ -65,23 +69,30 @@
 	</div>
 {/snippet}
 
-{#snippet progressBar(progress: number | undefined, isDark: boolean = false)}
+{#snippet progressBar(progress: number | undefined, status: string | undefined, message: string | undefined, isDark: boolean = false)}
 	{#if typeof progress === 'number'}
-		<p class="text-lg font-semibold {isDark ? 'text-white' : 'text-gray-700 dark:text-gray-300'}">
-			{progress}%
-		</p>
-		<!-- Custom progress bar for better reactivity -->
-		<div
-			class="relative h-3 w-64 overflow-hidden rounded-full {isDark
-				? 'bg-gray-700'
-				: 'bg-gray-200 dark:bg-gray-700'}"
-		>
+		<div class="flex flex-col items-center gap-2">
+			<p class="text-lg font-semibold {isDark ? 'text-white' : 'text-gray-700 dark:text-gray-300'}">
+				{progress}%
+			</p>
+			{#if message}
+				<p class="text-xs {isDark ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}">
+					{message}
+				</p>
+			{/if}
+			<!-- Custom progress bar for better reactivity -->
 			<div
-				class="h-full rounded-full transition-all duration-300 ease-out {isDark
-					? 'bg-gradient-to-r from-purple-500 to-blue-500'
-					: 'bg-gradient-to-r from-purple-600 to-blue-600'}"
-				style="width: {progress}%"
-			></div>
+				class="relative h-3 w-64 overflow-hidden rounded-full {isDark
+					? 'bg-gray-700'
+					: 'bg-gray-200 dark:bg-gray-700'}"
+			>
+				<div
+					class="h-full rounded-full transition-all duration-300 ease-out {isDark
+						? 'bg-gradient-to-r from-purple-500 to-blue-500'
+						: 'bg-gradient-to-r from-purple-600 to-blue-600'}"
+					style="width: {progress}%"
+				></div>
+			</div>
 		</div>
 	{/if}
 {/snippet}
@@ -119,9 +130,8 @@
 			: 'text-gray-500 dark:text-gray-400'}"
 	>
 		{@render poweredByZyetaI(progress, isDark)}
-		{@render progressBar(progress, isDark)}
+		{@render progressBar(progress, undefined, message, isDark)}
 		<div class="text-center">
-			<p class="text-lg font-medium">{message}</p>
 			<p class="text-sm {isDark ? 'text-gray-300' : ''}">{subMessage}</p>
 		</div>
 	</div>
@@ -135,7 +145,7 @@
 		{#if isGenerating}
 			{@render loadingContent(
 				genProgress,
-				'Creating your workspace...',
+				genMessage || 'Creating your workspace...',
 				'This may take a few moments',
 				false
 			)}
@@ -157,7 +167,7 @@
 						>
 							{@render loadingContent(
 								genProgress,
-								'Updating your workspace...',
+								genMessage || 'Updating your workspace...',
 								'This may take a few moments',
 								true
 							)}

@@ -1,11 +1,11 @@
-import { command, getRequestEvent, query } from '$app/server';
+import { query, command, getRequestEvent } from '$app/server';
 import { error } from '@sveltejs/kit';
-import { images, type NewImage } from '$lib/server/db/schema';
+import { images } from '$lib/server/db/schema';
+import { fal } from '@fal-ai/client';
 import { getDatabase } from '$lib/server/db/utils';
 import { createImage } from '$lib/server/db/queries';
 import { createImageGenerator } from '$lib/server/ai/image-generator';
 import { isValidImageUrl } from '$lib/utils/image-utils';
-import { listImages } from '../gallery/gallery.remote';
 import { and, eq } from 'drizzle-orm';
 import { uploadFromUrl } from '../storage/r2.remote';
 import { logger } from '$lib/utils/logger';
@@ -29,24 +29,24 @@ export const generateImage = command(GenerateImageSchema, async (data: GenerateI
 	}
 
 	try {
-		// Generate image
-		const result = await generator.generateImage({
-			prompt: data.prompt.trim(),
-			personaId: data.personaId.trim(),
-			tableId: data.tableId?.trim()
-		});
+			// Generate image
+			const result = await generator.generateImage({
+				prompt: data.prompt.trim(),
+				personaId: data.personaId.trim(),
+				tableId: data.tableId?.trim()
+			});
 
-		// Return the temporary URL from Fal.ai
-		// Image will be uploaded to R2 only when locked
-		return {
-			success: true,
-			data: {
-				imageUrl: result.imageUrl,
-				provider: result.provider,
-				prompt: result.prompt
-			},
-			message: 'Image generated successfully'
-		};
+			// Return the temporary URL from Fal.ai
+			// Image will be uploaded to R2 only when locked
+			return {
+				success: true,
+				data: {
+					imageUrl: result.imageUrl,
+					provider: result.provider,
+					prompt: result.prompt
+				},
+				message: 'Image generated successfully'
+			};
 	} catch (err) {
 		logger.error('Image generation failed', { component: 'ai.generateImage' }, err as any);
 		const message = err instanceof Error ? err.message : 'Image generation failed';
@@ -128,15 +128,15 @@ export const lockImage = command(LockImageSchema, async (data: LockImageRequest)
 		}
 	}
 
-	const db = getDatabase();
-	const newImage = await createImage(db, {
-		imageUrl: finalImageUrl,
-		prompt: data.prompt,
-		personaId: data.personaId,
-		tableId: data.tableId,
-		provider: 'fal.ai/nano-banana',
-		status: 'locked'
-	});
+    const db = getDatabase();
+    const newImage = await createImage(db, {
+        imageUrl: finalImageUrl,
+        prompt: data.prompt,
+        personaId: data.personaId,
+        tableId: data.tableId,
+        provider: 'fal.ai/nano-banana',
+        status: 'locked'
+    });
 
 	// Note: Gallery polling will detect this new image on next iteration
 
@@ -194,3 +194,128 @@ export const editImage = command(EditImageSchema, async (data: EditImageRequest)
 		error(500, `Image edit failed: ${message}`);
 	}
 });
+
+// Streaming generation with progress events
+type ProgressEvent = { type: 'progress'; data: { status: string; message: string; progress: number } };
+type ResultEvent = { type: 'result'; data: { imageUrl: string; provider: string; prompt: string } };
+type ErrorEvent = { type: 'error'; message: string };
+
+export const startGenerationStream = query(
+    GenerateImageSchema,
+    async function* (data: GenerateImageRequest) {
+        const event = getRequestEvent();
+        const platform = event?.platform || (globalThis as any).platform || undefined;
+
+        // Ensure Fal client is configured (reuse ImageGenerator config)
+        const generator = createImageGenerator(platform);
+        if (!generator.isAvailable()) error(503, 'Image generator not available');
+
+        // Simple enhancer (keep in sync with server generator intent)
+        const enhancedPrompt = data.prompt;
+
+        const updates: Array<{ status: string; message: string; progress: number }> = [];
+        let settled = false;
+
+        const mapStatus = (status: string, queuePosition?: number) => {
+            if (status === 'IN_QUEUE') return { progress: Math.max(5, queuePosition ? 20 - queuePosition * 2 : 10), message: 'Queued for generation' };
+            if (status === 'IN_PROGRESS') return { progress: 50, message: 'Generating image...' };
+            if (status === 'COMPLETED') return { progress: 100, message: 'Done' };
+            return { progress: 0, message: 'Starting...' };
+        };
+
+        const promise = fal.subscribe('fal-ai/nano-banana', {
+            input: {
+                prompt: enhancedPrompt,
+                num_images: 1,
+                output_format: 'jpeg'
+            },
+            logs: true,
+            onQueueUpdate: (update: any) => {
+                const qp = 'queue_position' in update ? update.queue_position : undefined;
+                const mapped = mapStatus(update.status, qp);
+                updates.push({ status: update.status, message: mapped.message, progress: mapped.progress });
+            }
+        });
+
+        // Pump progress updates periodically until settled
+        let idx = 0;
+        while (!settled) {
+            while (idx < updates.length) {
+                const u = updates[idx++];
+                yield { type: 'progress', data: { status: u.status, message: u.message, progress: u.progress } };
+            }
+            const done = await Promise.race([
+                promise.then(() => true).catch(() => true),
+                new Promise<boolean>((r) => setTimeout(() => r(false), 300))
+            ]);
+            if (done) settled = true;
+        }
+
+        // Final result
+        const result = await promise;
+        const imageUrl = result?.data?.images?.[0]?.url || (result as any)?.images?.[0]?.url;
+        if (!imageUrl) {
+            yield { type: 'error', message: 'No image URL in response' };
+            return;
+        }
+        yield { type: 'result', data: { imageUrl, provider: 'fal.ai/nano-banana', prompt: data.prompt } };
+    }
+);
+
+// Streaming edit with progress events
+export const startEditStream = query(
+    EditImageSchema,
+    async function* (data: EditImageRequest) {
+        const event = getRequestEvent();
+        const platform = event?.platform || (globalThis as any).platform || undefined;
+
+        const generator = createImageGenerator(platform);
+        if (!generator.isAvailable()) error(503, 'Image generator not available');
+
+        const updates: Array<{ status: string; message: string; progress: number }> = [];
+        let settled = false;
+
+        const mapStatus = (status: string, queuePosition?: number) => {
+            if (status === 'IN_QUEUE') return { progress: Math.max(5, queuePosition ? 20 - queuePosition * 2 : 10), message: 'Queued for edit' };
+            if (status === 'IN_PROGRESS') return { progress: 50, message: 'Editing image...' };
+            if (status === 'COMPLETED') return { progress: 100, message: 'Done' };
+            return { progress: 0, message: 'Starting...' };
+        };
+
+        const promise = fal.subscribe('fal-ai/nano-banana/edit', {
+            input: {
+                prompt: data.editPrompt,
+                image_urls: [data.imageUrl],
+                num_images: 1,
+                output_format: 'jpeg'
+            },
+            logs: true,
+            onQueueUpdate: (update: any) => {
+                const qp = 'queue_position' in update ? update.queue_position : undefined;
+                const mapped = mapStatus(update.status, qp);
+                updates.push({ status: update.status, message: mapped.message, progress: mapped.progress });
+            }
+        });
+
+        let idx = 0;
+        while (!settled) {
+            while (idx < updates.length) {
+                const u = updates[idx++];
+                yield { type: 'progress', data: { status: u.status, message: u.message, progress: u.progress } } as any;
+            }
+            const done = await Promise.race([
+                promise.then(() => true).catch(() => true),
+                new Promise<boolean>((r) => setTimeout(() => r(false), 300))
+            ]);
+            if (done) settled = true;
+        }
+
+        const result = await promise;
+        const imageUrl = result?.data?.images?.[0]?.url || (result as any)?.images?.[0]?.url;
+        if (!imageUrl) {
+            yield { type: 'error', message: 'No edited image in response' } as any;
+            return;
+        }
+        yield { type: 'result', data: { imageUrl, provider: 'fal-ai/nano-banana/edit', prompt: data.editPrompt } } as any;
+    }
+);

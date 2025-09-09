@@ -7,6 +7,7 @@ import type {
 	ImageGenerationOptions,
 	ImageGenerationResult
 } from '$lib/types';
+// Progress store removed from server path; progress is logged but not persisted server-side
 
 export interface ImageEditOptions {
 	imageUrl: string;
@@ -14,6 +15,8 @@ export interface ImageEditOptions {
 	personaId?: string;
 	tableId?: string;
 }
+
+export type ImageGenerationOptionsWithProgress = ImageGenerationOptions;
 
 /**
  * Image Generator using Fal.ai nano-banana model
@@ -64,9 +67,9 @@ export class ImageGenerator {
 	}
 
 	/**
-	 * Generate an architectural workspace image
+	 * Generate an architectural workspace image with real-time progress updates
 	 */
-	async generateImage(options: ImageGenerationOptions): Promise<ImageGenerationResult> {
+	async generateImage(options: ImageGenerationOptionsWithProgress): Promise<ImageGenerationResult> {
 		if (!this.isConfigured) {
 			logger.warn('Fal.ai API key not configured, using placeholder images', {
 				component: 'ImageGenerator',
@@ -93,12 +96,12 @@ export class ImageGenerator {
 				},
 				logs: true,
 				onQueueUpdate: (update) => {
-					if (update.status === 'IN_PROGRESS' && update.logs) {
-						devLog('Fal.ai progress update', {
-							component: 'ImageGenerator',
-							logs: update.logs?.map((log: FalLogEntry) => log.message)
-						});
-					}
+					const logs = 'logs' in update && update.logs ? update.logs.map((log: FalLogEntry) => log.message) : [];
+					devLog('Fal.ai progress update', {
+						component: 'ImageGenerator',
+						status: update.status,
+						logs
+					});
 				}
 			});
 
@@ -291,6 +294,24 @@ export class ImageGenerator {
 	 */
 	isAvailable(): boolean {
 		return this.isConfigured;
+	}
+
+	/**
+	 * Get user-friendly status message from Fal.ai status
+	 */
+	private getStatusMessage(status: string, queuePosition?: number): string {
+		switch (status) {
+			case 'IN_QUEUE':
+				return queuePosition ? `In queue (position ${queuePosition})` : 'Waiting in queue';
+			case 'IN_PROGRESS':
+				return 'Generating image...';
+			case 'COMPLETED':
+				return 'Generation complete';
+			case 'ERROR':
+				return 'Generation failed';
+			default:
+				return 'Processing...';
+		}
 	}
 }
 

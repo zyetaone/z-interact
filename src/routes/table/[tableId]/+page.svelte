@@ -82,8 +82,10 @@
 	// Derive generation state from current task
 	const isGenerating = $derived(!!currentTask && currentTask.isActive);
 
-	// Derive generation progress from task
+	// Derive generation progress and status from task
 	const genPercent = $derived(currentTask ? currentTask.progress : 0);
+	const genStatus = $derived(currentTask ? currentTask.status : '');
+	const genMessage = $derived(currentTask ? currentTask.message : '');
 
 	// Derive undo availability
 	const canUndo = $derived(canUndoWorkspaceEdit(table.id));
@@ -637,6 +639,8 @@
 						{isEdited}
 						isGenerating={isGenerating || false}
 						progress={genPercent}
+						progressStatus={genStatus}
+						progressMessage={genMessage}
 						{persona}
 						{formData}
 						{isFormValid}
