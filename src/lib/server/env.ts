@@ -10,11 +10,16 @@ const getProcessEnv = (key: string): string | undefined => {
 };
 
 // Pre-resolve all environment variables to avoid process.env in bundled output
-const DATABASE_URL_VALUE = getProcessEnv('DATABASE_URL') || svelteEnv.DATABASE_URL || 'file:./local.db';
-const FAL_API_KEY_VALUE = getProcessEnv('FAL_API_KEY ') || getProcessEnv('FAL_API_KEY') || svelteEnv.FAL_API_KEY;
-const SESSION_SECRET_VALUE = getProcessEnv('SESSION_SECRET') || svelteEnv.SESSION_SECRET || 'dev-secret';
-const CLOUDFLARE_API_TOKEN_VALUE = getProcessEnv('CLOUDFLARE_API_TOKEN') || svelteEnv.CLOUDFLARE_API_TOKEN;
-const CLOUDFLARE_ACCOUNT_ID_VALUE = getProcessEnv('CLOUDFLARE_ACCOUNT_ID') || svelteEnv.CLOUDFLARE_ACCOUNT_ID;
+const DATABASE_URL_VALUE =
+	getProcessEnv('DATABASE_URL') || svelteEnv.DATABASE_URL || 'file:./local.db';
+const FAL_API_KEY_VALUE =
+	getProcessEnv('FAL_API_KEY ') || getProcessEnv('FAL_API_KEY') || svelteEnv.FAL_API_KEY;
+const SESSION_SECRET_VALUE =
+	getProcessEnv('SESSION_SECRET') || svelteEnv.SESSION_SECRET || 'dev-secret';
+const CLOUDFLARE_API_TOKEN_VALUE =
+	getProcessEnv('CLOUDFLARE_API_TOKEN') || svelteEnv.CLOUDFLARE_API_TOKEN;
+const CLOUDFLARE_ACCOUNT_ID_VALUE =
+	getProcessEnv('CLOUDFLARE_ACCOUNT_ID') || svelteEnv.CLOUDFLARE_ACCOUNT_ID;
 const NODE_ENV_VALUE = getProcessEnv('NODE_ENV') || 'development';
 
 // Environment access with Cloudflare Workers compatibility

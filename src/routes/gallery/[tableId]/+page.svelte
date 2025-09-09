@@ -116,8 +116,15 @@
 		result.userInputs.environment = extractField(['Environmental character', 'Environment']);
 		result.userInputs.features = extractField(['Essential workspace elements', 'Key features']);
 		result.userInputs.colors = extractField(['Material and color palette', 'Color palette']);
-		result.userInputs.atmosphere = extractField(['Spatial atmosphere and emotional tone', 'Atmosphere']);
-		result.userInputs.additional = extractField(['Distinctive features', 'Special elements', 'Additional features']);
+		result.userInputs.atmosphere = extractField([
+			'Spatial atmosphere and emotional tone',
+			'Atmosphere'
+		]);
+		result.userInputs.additional = extractField([
+			'Distinctive features',
+			'Special elements',
+			'Additional features'
+		]);
 
 		// Extract system generation instructions
 		const instructionMatch = text.match(/Design this workspace to reflect[^.]+\./i);

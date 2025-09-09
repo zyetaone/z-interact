@@ -19,7 +19,7 @@ import {
 } from '$lib/validation/schemas';
 
 // Simple async command to generate image (no fake streaming)
-export const generateImage = query(GenerateImageSchema, async (data: GenerateImageRequest) => {
+export const generateImage = command(GenerateImageSchema, async (data: GenerateImageRequest) => {
 	const event = getRequestEvent();
 	const platform = event?.platform || (globalThis as any).platform || undefined;
 	const generator = createImageGenerator(platform);
@@ -164,7 +164,7 @@ export const lockImage = command(LockImageSchema, async (data: LockImageRequest)
 });
 
 // Command to edit an existing image
-export const editImage = query(EditImageSchema, async (data: EditImageRequest) => {
+export const editImage = command(EditImageSchema, async (data: EditImageRequest) => {
 	const event = getRequestEvent();
 	const platform = event?.platform || (globalThis as any).platform || undefined;
 
