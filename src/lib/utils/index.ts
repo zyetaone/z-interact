@@ -2,12 +2,8 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toastStore } from '$lib/stores/toast.svelte';
 
-// Error handling utilities
-export * from './error-handler';
-
-// Other utilities
+// Utility functions
 export * from './image-utils';
-export * from './prompt-builder';
 export * from './qr-print';
 
 /**

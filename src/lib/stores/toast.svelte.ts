@@ -54,10 +54,5 @@ class ToastStore {
 	}
 }
 
-// Factory function for creating new store instances
-export function createToastStore() {
-	return new ToastStore();
-}
-
-// Singleton instance for backward compatibility
+// Singleton instance
 export const toastStore = new ToastStore();

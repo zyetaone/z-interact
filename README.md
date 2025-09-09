@@ -4,37 +4,32 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.22.0-orange)](https://svelte.dev/)
 
-An interactive seminar experience platform that combines real-time collaboration with AI-powered workspace design generation using OpenAI DALL-E 3.
+An interactive seminar experience platform that combines real-time collaboration with AI-powered workspace design generation using Fal.ai (nano‑banana) and Cloudflare R2 for storage.
 
 ## ✨ Features
 
 ### 🎨 AI-Powered Image Generation
 
-- **OpenAI DALL-E 3 Integration**: High-quality, persona-specific workspace designs
-- **Real-time Generation**: Instant AI image creation with fallback support
-- **Smart Prompts**: Context-aware prompt engineering for optimal results
-- **Multiple Formats**: Support for various image sizes and quality levels
+- **Fal.ai (nano‑banana)**: High-quality, persona‑specific workspace designs
+- **Optimized Prompts**: Centralized prompt builder tuned for architectural renders
+- **Lock-in Persistence**: Temporary Fal URLs are stored permanently in Cloudflare R2 when locked
 
 ### 💾 Production-Ready Database
 
-- **SQLite with Drizzle ORM**: Robust data persistence and migrations
-- **Comprehensive Schema**: Users, sessions, participants, images, activity logs
-- **Real-time Synchronization**: Live updates across all connected clients
-- **Data Integrity**: Foreign key constraints and proper indexing
+- **SQLite/LibSQL + Drizzle ORM**: Robust persistence, easy local/dev
+- **Images Table**: Simple, focused schema for generated/locked images
+- **Incremental Sync**: Efficient workspace syncs based on last update timestamps
 
-### 🔄 Real-Time Collaboration
+### 🔄 Updates / Sync
 
-- **Server-Sent Events**: Instant updates without polling
-- **Live Gallery**: Real-time display of generated images
-- **Connection Management**: Automatic reconnection and cleanup
-- **Broadcast System**: Efficient multi-client communication
+- **Remote Functions**: SvelteKit remote functions handle reads/writes
+- **Smart Sync**: `syncWorkspaces()` fetches + normalizes + updates store in a single call
+- **Incremental**: Only fetches changes after the first full sync
 
-### 🔐 Authentication & Security
+### 🔐 Security
 
-- **Secure Sessions**: JWT-based authentication with Argon2 password hashing
-- **Role-Based Access**: Admin, Presenter, Participant permissions
-- **Environment Security**: Proper environment variable management
-- **Input Validation**: Comprehensive sanitization and validation
+- **Validation**: Valibot schemas + shared validation pipes
+- **Remote Guardrails**: Basic SSRF protections for server‑side image download (allowlisted hosts, timeouts)
 
 ### 🎯 User Experience
 
@@ -113,31 +108,37 @@ An interactive seminar experience platform that combines real-time collaboration
 ### Tech Stack
 
 - **Frontend**: Svelte 5, SvelteKit 2, Tailwind CSS
-- **Backend**: SvelteKit API routes, Node.js
-- **Database**: SQLite with Drizzle ORM
-- **AI**: OpenAI DALL-E 3 API
-- **Real-time**: Server-Sent Events (SSE)
-- **UI Components**: Bits UI, Flowbite
+- **Backend**: SvelteKit remote functions
+- **Database**: SQLite/LibSQL with Drizzle ORM
+- **AI**: Fal.ai (nano‑banana)
+- **Storage**: Cloudflare R2
+- **UI Components**: Flowbite + custom components
 
 ### Project Structure
 
 ```
 src/
 ├── lib/
+│   ├── stores/
+│   │   ├── config-store.svelte.ts     # Personas, tables, prompt builder
+│   │   ├── workspace-store.svelte.ts  # Workspaces SSOT + syncWorkspaces()
+│   │   ├── theme.svelte.ts            # Theme store
+│   │   └── toast.svelte.ts            # Toast store
 │   ├── server/
-│   │   ├── db/           # Database schema and connection
+│   │   └── db/                        # Drizzle schema, queries, utils
 │   │   ├── ai/           # OpenAI integration
 │   │   ├── auth.ts       # Authentication system
 │   │   └── sse-manager.ts # Real-time communication
 │   ├── stores/           # Svelte stores
-│   ├── components/
-│   │   └── ui/           # Reusable UI components
-│   └── utils.ts          # Utility functions
+│   ├── components/                    # UI + workspace components
+│   ├── utils/                         # Utilities (logging, image utils, etc.)
+│   └── config.svelte.ts               # Public facade re‑exports (no legacy aliases)
 ├── routes/
-│   ├── api/              # API endpoints
-│   ├── table/            # Participant forms
-│   ├── +page.svelte      # QR Codes page
-│   └── gallery/          # Gallery page
+│   ├── storage/r2.remote.ts           # Upload/delete to Cloudflare R2
+│   ├── gallery/gallery.remote.ts       # Image list/clear/since/subscribe + server uploads
+│   ├── table/ai.remote.ts             # Generate/edit/lock image
+│   ├── gallery/+page.svelte           # Gallery
+│   └── table/[tableId]/+page.svelte   # Participant form
 └── app.css               # Global styles
 ```
 
@@ -149,8 +150,12 @@ src/
 # Database
 DATABASE_URL=file:./local.db
 
-# AI Services
-OPENAI_API_KEY=your-openai-api-key-here
+# Fal.ai
+FAL_API_KEY=your-fal-api-key
+
+# Cloudflare R2
+R2_IMAGES=<bound in worker/platform>
+R2_PUBLIC_URL=https://<public-r2-domain>
 
 # Authentication
 SESSION_SECRET=your-session-secret-here
@@ -199,66 +204,25 @@ npm run test
 - ✅ **E2E Tests**: Complete user workflows
 - ✅ **Performance Tests**: Load testing scenarios
 
-## 📊 API Documentation
+## 📊 App Integration
 
-### Image Generation
+### Sync Workspaces (Client)
 
-```http
-POST /api/generate-image
-Content-Type: application/json
+```ts
+import { syncWorkspaces } from '$lib/config.svelte';
 
-{
-  "prompt": "A modern office workspace...",
-  "personaId": "baby-boomer",
-  "size": "1024x1024",
-  "quality": "standard"
-}
+// Gallery: first load full, then incremental
+await syncWorkspaces({ limit: 100, reset: true });
+
+// Table: per-table sync
+await syncWorkspaces({ tableId, limit: 50, reset: true });
 ```
 
-### Real-Time Updates
+### Remote Functions (Server)
 
-```http
-GET /api/sse
-# Server-Sent Events stream
-```
-
-### Image Storage
-
-```http
-# Image Management API (Split Endpoints)
-
-# Generate new images using AI
-POST /api/images/generate
-Content-Type: application/json
-
-{
-  "prompt": "Architectural visualization of a modern workspace",
-  "personaId": "baby-boomer",
-  "tableId": "1"
-}
-
-# Save existing images to database
-POST /api/images/save
-Content-Type: application/json
-
-{
-  "personaId": "baby-boomer",
-  "imageUrl": "https://example.com/image.png",
-  "prompt": "Modern workspace visualization",
-  "tableId": "1"
-}
-
-# List all locked images
-GET /api/images/list
-
-# Clear all images (database + R2 storage)
-DELETE /api/images/clear
-
-# Legacy compatibility endpoints (redirect to focused endpoints)
-GET /api/images
-POST /api/images
-DELETE /api/images
-```
+- `src/routes/table/ai.remote.ts`: `generateImage`, `editImage`, `lockImage`
+- `src/routes/gallery/gallery.remote.ts`: `listImages`, `getImageById`, `deleteImage`, `clearImages`, `listImagesSince`, `subscribeToGalleryUpdates`, `uploadImageUrl`, `uploadBlob`, `uploadImage`
+- `src/routes/storage/r2.remote.ts`: `uploadFromUrl`, `uploadFromBase64`, `uploadFromBuffer`, `deleteFromR2`
 
 ## 🚀 Deployment
 

@@ -11,8 +11,8 @@ export const ValidationPatterns = {
 	tableId: /^([1-9]|10)$/,
 	url: /^https?:\/\/.+/,
 	uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-	imageStatus: /^(generating|completed|failed|locked)$/,
-	imageProvider: /^(openai|dall-e-3|placeholder|fal)$/
+	imageStatus: /^(generating|active|uploaded|locked|failed)$/,
+	imageProvider: /^(openai|dall-e-3|placeholder|upload|fal(\.ai)?.*)$/
 };
 
 // Reusable validation pipes

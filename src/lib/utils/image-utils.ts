@@ -3,6 +3,24 @@
  */
 
 /**
+ * Validate if a URL is a valid image URL format
+ * Supports HTTP(S), data URLs, and blob URLs
+ */
+export function isValidImageUrl(url: string): boolean {
+	if (!url || typeof url !== 'string' || url.trim() === '') {
+		return false;
+	}
+
+	const trimmedUrl = url.trim();
+	return (
+		trimmedUrl.startsWith('http://') ||
+		trimmedUrl.startsWith('https://') ||
+		trimmedUrl.startsWith('data:') ||
+		trimmedUrl.startsWith('blob:')
+	);
+}
+
+/**
  * Downloads an image from a URL
  * @param imageUrl - The URL of the image to download
  * @param filename - Optional filename for the download
@@ -33,13 +51,13 @@ export function openFullscreen(imageUrl: string, alt?: string): void {
 	// Create a fullscreen overlay
 	const overlay = document.createElement('div');
 	overlay.className =
-		'fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4';
+		'fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4 overflow-y-auto';
 	overlay.innerHTML = `
-		<div class="relative max-w-full max-h-full">
+		<div class="relative max-w-full">
 			<img
 				src="${imageUrl}"
 				alt="${alt || 'Workspace image'}"
-				class="max-w-full max-h-full object-contain"
+				class="max-w-full max-h-screen object-contain"
 			/>
 			<button
 				class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
@@ -69,38 +87,4 @@ export function openFullscreen(imageUrl: string, alt?: string): void {
 	document.addEventListener('keydown', handleEscape);
 
 	document.body.appendChild(overlay);
-}
-
-/**
- * Formats a timestamp into a readable date string
- * @param timestamp - The timestamp to format (ISO string, Date object, or number)
- * @returns Formatted date string
- */
-export function formatDate(timestamp: number | Date | string): string {
-	let date: Date;
-	if (typeof timestamp === 'string') {
-		date = new Date(timestamp);
-	} else if (typeof timestamp === 'number') {
-		date = new Date(timestamp);
-	} else {
-		date = timestamp;
-	}
-
-	return date.toLocaleDateString('en-US', {
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit'
-	});
-}
-
-/**
- * Gets the table display name from table ID
- * @param tableId - The table ID
- * @returns Display name for the table
- */
-export function getTableDisplayName(tableId: string | null): string {
-	if (!tableId) return 'Unknown';
-	return `Table ${tableId}`;
 }

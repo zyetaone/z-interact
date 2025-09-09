@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { downloadImage, openFullscreen } from '$lib/utils/image-utils';
-	import { DownloadOutline, ExpandOutline } from 'flowbite-svelte-icons';
+	import {
+		DownloadOutline,
+		ExpandOutline,
+		CheckCircleOutline,
+		PaletteOutline
+	} from 'flowbite-svelte-icons';
 	import { confetti } from '@neoconfetti/svelte';
 	import ImageWithLoader from '$lib/components/ui/image-with-loader.svelte';
 
 	let props = $props<{
 		generatedImage: string | null;
+		tableId?: string;
 	}>();
 
-	const { generatedImage } = props;
+	const { generatedImage, tableId } = props;
 	let showConfetti = $state(false);
 
 	// Show confetti reactively on component mount
@@ -25,7 +31,7 @@
 </script>
 
 <div
-	class="relative flex h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-6 dark:from-gray-900 dark:to-gray-800"
+	class="relative flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-slate-50 to-blue-50 p-6 dark:from-gray-900 dark:to-gray-800"
 >
 	<!-- Confetti Animation -->
 	{#if showConfetti}
@@ -43,18 +49,20 @@
 		</div>
 	{/if}
 
-	<div class="fade-in flex h-full w-full max-w-6xl flex-col items-center justify-center">
+	<div class="fade-in flex w-full max-w-6xl flex-col items-center justify-center">
 		<!-- Success Animation -->
 		<div
 			class="zoom-in mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
 		>
-			<div class="animate-bounce text-3xl">✅</div>
+			<div class="animate-bounce text-3xl">
+				<CheckCircleOutline class="h-12 w-12 text-green-600 dark:text-green-400" />
+			</div>
 		</div>
 
 		<!-- Thank You Message -->
 		<div class="slide-up mb-6 text-center">
 			<h1 class="mb-3 text-3xl font-bold text-green-600 md:text-4xl dark:text-green-400">
-				Thank You!
+				{tableId ? `Thank You, Table ${tableId}!` : 'Thank You!'}
 			</h1>
 			<p class="mb-2 text-lg font-medium text-slate-700 md:text-xl dark:text-gray-300">
 				Your workspace vision has been captured
@@ -66,9 +74,9 @@
 
 		<!-- Generated Image Display -->
 		{#if generatedImage}
-			<div class="slide-up mb-6 flex w-full max-w-2xl items-center justify-center px-4">
+			<div class="slide-up mb-6 flex w-full max-w-xl items-center justify-center px-4">
 				<div
-					class="group relative aspect-square w-full overflow-hidden rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-gray-700"
+					class="group relative aspect-square max-h-[60vh] w-full max-w-[60vh] overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200 dark:bg-gray-900 dark:ring-gray-700"
 				>
 					<!-- Show generated image with loader -->
 					<ImageWithLoader
@@ -108,7 +116,9 @@
 		<!-- Appreciation Note -->
 		<div class="slide-up text-center">
 			<p class="text-lg text-slate-600 italic dark:text-gray-400">
-				We appreciate your creativity and participation! 🎨
+				We appreciate your creativity and participation! <PaletteOutline
+					class="ml-1 inline h-5 w-5"
+				/>
 			</p>
 		</div>
 	</div>

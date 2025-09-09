@@ -16,9 +16,7 @@ type DatabaseConnection = ReturnType<typeof drizzleD1 | typeof drizzleLibSQL>;
  */
 export function getDb(platform?: Platform): DatabaseConnection {
 	const isCloudflare = typeof process === 'undefined';
-	const isDevelopment =
-		typeof process !== 'undefined' &&
-		(process.env?.NODE_ENV === 'development' || !process.env?.NODE_ENV);
+	const isDevelopment = !isCloudflare && (env.NODE_ENV === 'development' || !env.NODE_ENV);
 
 	logger.info('Database connection attempt', {
 		component: 'Database',

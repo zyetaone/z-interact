@@ -48,8 +48,8 @@ type Image = {
 	prompt: string;
 	provider: string;
 	status: string;
-	createdAt: Date;
-	updatedAt: Date | null;
+	createdAt: number; // ms timestamp
+	updatedAt: number | null; // ms timestamp
 };
 
 export type NewImage = typeof images.$inferInsert;
@@ -104,7 +104,7 @@ export const tableIdPipe = v.pipe(
 
 export const imageStatusPipe = v.pipe(
 	v.string('Status must be a string'),
-	v.regex(/^(generating|completed|failed|locked)$/, 'Invalid status')
+	v.regex(/^(generating|active|uploaded|locked|failed)$/, 'Invalid status')
 );
 ```
 
@@ -138,61 +138,29 @@ export const ImageQueries = {
 
 ```typescript
 // In gallery.remote.ts
-const listImagesSchema = v.object({
-	admin: v.optional(v.boolean()),
-	limit: v.optional(v.pipe(v.number(), v.minValue(1), v.maxValue(100)))
+export const listImagesSince = query(ListImagesSinceSchema, async (params) => {
+	const { since, limit = 50, admin = false, tableId } = params;
+	const db = getDatabase();
+	const conditions = [gt(images.updatedAt, since)];
+	if (tableId) conditions.push(eq(images.tableId, tableId));
+	if (!admin) conditions.push(gt(images.createdAt, Date.now() - 86400000));
+	const result = await db
+		.select()
+		.from(images)
+		.where(and(...conditions))
+		.orderBy(desc(images.updatedAt))
+		.limit(limit);
+	return serializeImages(result);
 });
-
-export const listImages = query(
-	v.optional(listImagesSchema), // Input validation
-	async (params) => {
-		// params is typed from schema
-		const database = getDb(platform);
-		const imageQueries = createImageQueries(database);
-
-		const result = await imageQueries.findRecent(limit);
-		// result is Image[] from Drizzle
-
-		return result.map(serializeImage);
-		// Returns Image[] with proper types
-	}
-);
 ```
 
-## 7. Complete Flow Example
+## 7. Complete Flow Example (Store‑Driven)
 
 ```typescript
-// 1. User makes request
-const userInput = {
-	prompt: 'A modern workspace',
-	personaId: 'millennial',
-	tableId: '5'
-};
-
-// 2. Valibot validates input
-const validated = v.parse(generateImageRequestSchema, userInput);
-// Type: { prompt: string; personaId: string; tableId?: string }
-
-// 3. Create database record with Drizzle
-const newImage: NewImage = {
-	id: crypto.randomUUID(),
-	...validated,
-	createdAt: new Date()
-};
-
-// 4. Insert into database (Drizzle handles SQL)
-await db.insert(images).values(newImage);
-
-// 5. Query back with type safety
-const [saved] = await db.select().from(images).where(eq(images.id, newImage.id));
-// Type: Image
-
-// 6. Validate output if needed
-const validatedOutput = v.parse(selectImageSchema, saved);
-// Type: Image (validated)
-
-// 7. Return to client
-return serializeImage(validatedOutput);
+// Client: First gallery sync then incremental
+await syncWorkspaces({ limit: 100, reset: true });
+// Later…
+await syncWorkspaces({ limit: 100 }); // incremental by timestamp
 ```
 
 ## Benefits of This Architecture

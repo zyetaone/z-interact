@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Persona } from '$lib/config.svelte';
-	import { updatePersonaTitle, updatePersonaDescription } from '$lib/config.svelte';
+	import type { Persona } from '$lib/types';
+	import { updatePersonaTitle, updatePersonaDescription } from '$lib/stores/config-store.svelte';
 	import { Modal, Button, Input, Textarea, Label } from 'flowbite-svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
 

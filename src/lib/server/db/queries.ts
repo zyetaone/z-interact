@@ -1,6 +1,7 @@
-import { images } from './schema';
+import { images, type NewImage } from './schema';
 import { eq, gte, gt, desc, and } from 'drizzle-orm';
 import type { DatabaseConnection } from './index';
+import { getPersonaById } from '../../stores/config-store.svelte';
 
 /**
  * Common query builders for images
@@ -63,4 +64,59 @@ export function createImageQueries(db: DatabaseConnection) {
 		findSince: (sinceTimestamp: number, limit?: number) =>
 			ImageQueries.since(db, sinceTimestamp, limit)
 	};
+}
+
+// Image creation interface
+export interface CreateImageOptions {
+	imageUrl: string;
+	prompt: string;
+	personaId?: string;
+	tableId?: string;
+	provider?: string;
+	status?: 'locked' | 'pending' | 'failed';
+	sessionId?: string;
+	participantId?: string;
+}
+
+/**
+ * Create and insert a new image record with consistent defaults
+ * Consolidated from separate image-operations.ts file
+ */
+export async function createImage(
+	db: DatabaseConnection,
+	options: CreateImageOptions
+): Promise<NewImage> {
+	const {
+		imageUrl,
+		prompt,
+		personaId = 'upload',
+		tableId = null,
+		provider = 'upload',
+		status = 'locked',
+		sessionId = null,
+		participantId = null
+	} = options;
+
+	const newImage: NewImage = {
+		id: crypto.randomUUID(),
+		tableId: tableId?.trim() || null,
+		personaId: personaId.trim(),
+		personaTitle:
+			getPersonaById(personaId)?.title ||
+			personaId
+				.trim()
+				.replace('-', ' ')
+				.replace(/\b\w/g, (l: string) => l.toUpperCase()),
+		sessionId,
+		participantId,
+		imageUrl,
+		prompt: prompt.trim(),
+		provider,
+		status,
+		createdAt: Date.now(),
+		updatedAt: Date.now()
+	};
+
+	await db.insert(images).values(newImage);
+	return newImage;
 }

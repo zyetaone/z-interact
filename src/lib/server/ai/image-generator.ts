@@ -8,6 +8,13 @@ import type {
 	ImageGenerationResult
 } from '$lib/types';
 
+export interface ImageEditOptions {
+	imageUrl: string;
+	editPrompt: string;
+	personaId?: string;
+	tableId?: string;
+}
+
 /**
  * Image Generator using Fal.ai nano-banana model
  * Optimized for architectural/workspace visualizations
@@ -18,18 +25,13 @@ export class ImageGenerator {
 	private apiKey: string | undefined;
 
 	constructor(platform?: Platform) {
-		// Try multiple methods to get API key (Cloudflare Workers secrets can be tricky)
-		// IMPORTANT: The key in Cloudflare has a trailing space "FAL_API_KEY "
+		// Get API key from platform or fallback to env
 		this.apiKey =
-			(typeof platform?.env?.FAL_API_KEY === 'string' ? platform.env.FAL_API_KEY : undefined) || // Method 1: Direct from env
-			(typeof platform?.env?.['FAL_API_KEY'] === 'string'
-				? platform.env['FAL_API_KEY']
-				: undefined) || // Method 2: Bracket notation
 			(typeof platform?.env?.['FAL_API_KEY '] === 'string'
 				? platform.env['FAL_API_KEY ']
-				: undefined) || // Method 3: WITH TRAILING SPACE (Cloudflare bug)
-			env.FAL_API_KEY || // Method 4: From env.ts
-			(typeof process !== 'undefined' ? process.env?.FAL_API_KEY : undefined); // Method 5: Process env
+				: undefined) ||
+			(typeof platform?.env?.FAL_API_KEY === 'string' ? platform.env.FAL_API_KEY : undefined) ||
+			env.FAL_API_KEY;
 
 		if (this.apiKey) {
 			fal.config({
@@ -38,10 +40,7 @@ export class ImageGenerator {
 			this.isConfigured = true;
 			devLog('Fal.ai configured with nano-banana model', { component: 'ImageGenerator' });
 		} else {
-			logger.warn('FAL_API_KEY not configured', {
-				component: 'ImageGenerator',
-				availableKeys: platform?.env ? Object.keys(platform.env) : 'No platform env'
-			});
+			logger.warn('FAL_API_KEY not configured', { component: 'ImageGenerator' });
 		}
 	}
 
@@ -50,7 +49,10 @@ export class ImageGenerator {
 	 */
 	configureWithPlatform(platform: Platform) {
 		const platformKey =
-			typeof platform?.env?.FAL_API_KEY === 'string' ? platform.env.FAL_API_KEY : undefined;
+			(typeof platform?.env?.['FAL_API_KEY '] === 'string'
+				? platform.env['FAL_API_KEY ']
+				: undefined) ||
+			(typeof platform?.env?.FAL_API_KEY === 'string' ? platform.env.FAL_API_KEY : undefined);
 		if (platformKey && platformKey !== this.apiKey) {
 			this.apiKey = platformKey;
 			fal.config({
@@ -73,7 +75,7 @@ export class ImageGenerator {
 			return this.generatePlaceholder(options.prompt);
 		}
 
-		const endTimer = logger.startOperation('image_generation', {
+		logger.debug('Starting image generation', {
 			component: 'ImageGenerator',
 			prompt: options.prompt?.substring(0, 50),
 			personaId: options.personaId
@@ -112,7 +114,7 @@ export class ImageGenerator {
 				throw new Error('No image URL in response');
 			}
 
-			endTimer();
+			logger.debug('Image generation completed');
 
 			return {
 				imageUrl,
@@ -159,6 +161,90 @@ export class ImageGenerator {
 				originalError: errorObj?.message
 			});
 			return this.generatePlaceholder(options.prompt);
+		}
+	}
+
+	/**
+	 * Edit an existing image using Fal.ai nano-banana/edit model
+	 */
+	async editImage(options: ImageEditOptions): Promise<ImageGenerationResult> {
+		if (!this.isConfigured) {
+			logger.warn('Fal.ai API key not configured, cannot edit images', {
+				component: 'ImageGenerator'
+			});
+			throw new Error('Image editing requires API configuration');
+		}
+
+		logger.debug('Starting image edit', {
+			component: 'ImageGenerator',
+			editPrompt: options.editPrompt?.substring(0, 50),
+			personaId: options.personaId
+		});
+
+		try {
+			devLog('Starting image edit with Fal.ai nano-banana/edit', {
+				component: 'ImageGenerator',
+				editPrompt: options.editPrompt?.substring(0, 100)
+			});
+
+			// Call Fal.ai nano-banana/edit endpoint
+			const result = await fal.subscribe('fal-ai/nano-banana/edit', {
+				input: {
+					prompt: options.editPrompt,
+					image_urls: [options.imageUrl],
+					num_images: 1,
+					output_format: 'jpeg'
+				},
+				logs: true,
+				onQueueUpdate: (update: any) => {
+					if (update.status === 'IN_PROGRESS' && update.logs) {
+						update.logs.forEach((log: FalLogEntry) => {
+							devLog(log.message, {
+								component: 'ImageGenerator:Edit',
+								level: log.level,
+								timestamp: log.timestamp
+							});
+						});
+					}
+				}
+			});
+
+			const editedUrl = result.data?.images?.[0]?.url;
+			const description = result.data?.description || 'Image edited successfully';
+
+			if (!editedUrl) {
+				throw new Error('No edited image returned from API');
+			}
+
+			logger.debug('Image generation completed');
+
+			return {
+				imageUrl: editedUrl,
+				provider: 'fal.ai/nano-banana/edit',
+				prompt: options.editPrompt,
+				metadata: {
+					model: 'nano-banana/edit',
+					generationTime: new Date().toISOString(),
+					requestId: result.requestId,
+					description,
+					editMode: true,
+					originalUrl: options.imageUrl
+				}
+			};
+		} catch (error: any) {
+			logger.debug('Image generation completed');
+
+			logger.error(
+				'Image edit failed',
+				{
+					component: 'ImageGenerator',
+					error: error?.message,
+					editPrompt: options.editPrompt?.substring(0, 50)
+				},
+				error instanceof Error ? error : new Error(String(error))
+			);
+
+			throw new Error(`Failed to edit image: ${error?.message || 'Unknown error'}`);
 		}
 	}
 

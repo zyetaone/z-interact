@@ -1,4 +1,4 @@
-import { getTableById, getPersonaById } from '$lib/config.svelte';
+import { getTableById, getPersonaById } from '$lib/stores/config-store.svelte';
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 

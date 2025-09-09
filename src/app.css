@@ -53,10 +53,16 @@
 	--ring: 212.7 26.8% 83.9%;
 }
 
+html,
 body {
 	min-height: 100vh;
 	margin: 0;
 	font-family: var(--font-body);
+	background: white;
+}
+
+.dark body {
+	background: #111827;
 }
 
 /* Let Tailwind handle typography - only keep essential styles */
@@ -164,6 +170,26 @@ button:focus:not(:focus-visible) {
 /* Smooth transitions for interactive elements */
 .smooth-transition {
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 640px) {
+	/* Improved touch scrolling on mobile */
+	html {
+		scroll-behavior: smooth;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	/* Prevent horizontal scrolling on mobile */
+	body {
+		overflow-x: hidden;
+	}
+
+	/* Improve text readability on mobile */
+	input,
+	textarea {
+		font-size: 16px; /* Prevents zoom on iOS */
+	}
 }
 
 /* Image loading effects */

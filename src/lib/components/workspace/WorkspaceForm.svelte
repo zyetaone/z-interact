@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PromptFields, Persona } from '$lib/types';
 	import { Label, Textarea, Helper, Tooltip } from 'flowbite-svelte';
-	import { validatePrompt, getPromptErrors } from '$lib/validation/prompt';
-	import { handleError } from '$lib/utils/error-handler';
+	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { debounce } from '$lib/utils';
 
 	let props = $props<{
@@ -75,7 +74,8 @@
 						<span
 							class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
 						>
-							✓ Complete
+							<CheckCircleOutline class="mr-1 inline h-3 w-3" />
+							Complete
 						</span>
 					{:else if formData[typedField] && formData[typedField].length > 0}
 						<span

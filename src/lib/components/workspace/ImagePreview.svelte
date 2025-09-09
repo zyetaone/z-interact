@@ -1,83 +1,144 @@
 <script lang="ts">
 	import { Button, ImageWithLoader } from '$lib/components/ui';
-	import { Alert, Button as FBButton } from 'flowbite-svelte';
-	import { PromptBuilder } from '$lib/utils/prompt-builder';
 	import type { PromptFields, Persona, Table } from '$lib/types';
-	import { downloadImage, openFullscreen, getTableDisplayName } from '$lib/utils/image-utils';
-	import { DownloadOutline, ExpandOutline } from 'flowbite-svelte-icons';
+	import { downloadImage, openFullscreen } from '$lib/utils/image-utils';
+	import {
+		DownloadOutline,
+		ExpandOutline,
+		WandMagicSparklesOutline,
+		BuildingOutline,
+		FireOutline,
+		EditOutline,
+		LockOutline,
+		ArrowLeftOutline
+	} from 'flowbite-svelte-icons';
 
 	let props = $props<{
+		image: string | null;
+		originalImage?: string | null;
+		isEdited?: boolean;
+		isGenerating: boolean;
+		progress?: number;
 		persona: Persona;
 		formData: PromptFields;
-		generatedImage: string | null;
-		isGenerating: boolean;
-		progressValue: number;
-		isFormValid: boolean;
-		showPromptPreview: boolean;
-		onShowPromptPreviewChange: (show: boolean) => void;
-		onGenerateImage: () => void;
-		onLockInImage: () => void;
-		genProgress?: number;
-		onCancel?: () => void;
+		isFormValid?: boolean;
+		onGenerateImage?: () => void;
+		onLockInImage?: () => void;
+		onEditRegenerate?: () => void;
+		onUndo?: () => void;
+		isLocked?: boolean;
 		tableId?: string;
+		canUndo?: boolean;
 	}>();
 
+	const generatedImage = $derived(props.image);
+	const isGenerating = $derived(props.isGenerating);
+	const genProgress = $derived(props.progress);
 	const persona = $derived(props.persona);
 	const formData = $derived(props.formData);
-	const generatedImage = $derived(props.generatedImage);
-	const isGenerating = $derived(props.isGenerating);
-	const progressValue = $derived(props.progressValue);
-	const isFormValid = $derived(props.isFormValid);
-	const showPromptPreview = $derived(props.showPromptPreview);
 
-	const onShowPromptPreviewChange = (show: boolean) => props.onShowPromptPreviewChange(show);
-	const onGenerateImage = () => props.onGenerateImage();
-	const onLockInImage = () => props.onLockInImage();
-	const onCancel = () => props.onCancel?.();
+	// Derive form validation state (allow parent to provide canonical validity)
+	const isFormValid = $derived(
+		typeof props.isFormValid === 'boolean'
+			? props.isFormValid
+			: !!(formData && Object.values(formData).every((v) => typeof v === 'string' && v.length >= 3))
+	);
 </script>
 
-<div class="flex flex-col p-6 lg:flex-1">
-	<!-- Header -->
-	<div class="mb-6 flex-shrink-0">
-		<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Generated Workspace</h2>
-		<p class="text-gray-600 dark:text-gray-400">
-			Your AI-generated image will appear here once you complete the form.
-		</p>
+<!-- Reusable snippets -->
+{#snippet poweredByZyetaI(progress: number | undefined, isDark: boolean = false)}
+	<div class="flex flex-col items-center gap-2">
+		<span
+			class="text-xs font-medium tracking-wider uppercase {isDark
+				? 'text-gray-300'
+				: 'text-gray-400 dark:text-gray-500'}"
+		>
+			Powered by
+		</span>
+		<h3
+			class="bg-gradient-to-r bg-clip-text text-3xl font-bold text-transparent {isDark
+				? 'from-purple-400 to-blue-400'
+				: 'from-purple-600 to-blue-600'}"
+		>
+			Zyeta<span class="animate-dot-bounce inline-block">I</span>
+		</h3>
 	</div>
+{/snippet}
 
-	<!-- Image Display -->
+{#snippet progressBar(progress: number | undefined, isDark: boolean = false)}
+	{#if typeof progress === 'number'}
+		<p class="text-lg font-semibold {isDark ? 'text-white' : 'text-gray-700 dark:text-gray-300'}">
+			{progress}%
+		</p>
+		<!-- Custom progress bar for better reactivity -->
+		<div
+			class="relative h-3 w-64 overflow-hidden rounded-full {isDark
+				? 'bg-gray-700'
+				: 'bg-gray-200 dark:bg-gray-700'}"
+		>
+			<div
+				class="h-full rounded-full transition-all duration-300 ease-out {isDark
+					? 'bg-gradient-to-r from-purple-500 to-blue-500'
+					: 'bg-gradient-to-r from-purple-600 to-blue-600'}"
+				style="width: {progress}%"
+			></div>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet imageActions(imageUrl: string, tableId: string | undefined, personaTitle: string)}
+	<div class="pointer-events-auto mb-4 flex gap-3">
+		<button
+			class="glass-morphism smooth-transition flex h-11 w-11 items-center justify-center rounded-full text-white hover:scale-110"
+			title="Download"
+			aria-label="Download image"
+			onclick={() => downloadImage(imageUrl, `table-${tableId || 'unknown'}-workspace.jpg`)}
+		>
+			<DownloadOutline class="h-5 w-5" />
+		</button>
+		<button
+			class="glass-morphism smooth-transition flex h-11 w-11 items-center justify-center rounded-full text-white hover:scale-110"
+			title="View fullscreen"
+			aria-label="View fullscreen"
+			onclick={() => openFullscreen(imageUrl, personaTitle)}
+		>
+			<ExpandOutline class="h-5 w-5" />
+		</button>
+	</div>
+{/snippet}
+
+{#snippet loadingContent(
+	progress: number | undefined,
+	message: string,
+	subMessage: string,
+	isDark: boolean = false
+)}
 	<div
-		class="mb-6 flex aspect-video items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white lg:aspect-auto lg:flex-1 dark:border-gray-600 dark:bg-gray-900"
+		class="flex flex-col items-center gap-4 p-8 {isDark
+			? 'text-white'
+			: 'text-gray-500 dark:text-gray-400'}"
+	>
+		{@render poweredByZyetaI(progress, isDark)}
+		{@render progressBar(progress, isDark)}
+		<div class="text-center">
+			<p class="text-lg font-medium">{message}</p>
+			<p class="text-sm {isDark ? 'text-gray-300' : ''}">{subMessage}</p>
+		</div>
+	</div>
+{/snippet}
+
+<div class="flex flex-col lg:flex-1">
+	<!-- Mobile-optimized Image Display -->
+	<div
+		class="group relative mb-6 flex aspect-square items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white sm:mb-8 lg:aspect-auto lg:min-h-[500px] lg:flex-1 dark:border-gray-600 dark:bg-gray-900"
 	>
 		{#if isGenerating}
-			<div class="flex flex-col items-center gap-4 p-8 text-gray-500 dark:text-gray-400">
-				<!-- Powered by ZyetaI -->
-				<div class="flex flex-col items-center gap-2">
-					<span class="text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
-						Powered by
-					</span>
-					<h3 class="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-3xl font-bold text-transparent">
-						ZyetaI
-					</h3>
-				</div>
-				
-				{#if typeof props.genProgress === 'number'}
-					<p class="text-lg font-semibold text-gray-700 dark:text-gray-300">{props.genProgress}%</p>
-					<!-- Custom progress bar for better reactivity -->
-					<div
-						class="relative h-3 w-64 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
-					>
-						<div
-							class="h-full rounded-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 ease-out"
-							style="width: {props.genProgress}%"
-						></div>
-					</div>
-				{/if}
-				<div class="text-center">
-					<p class="text-lg font-medium">Creating your workspace...</p>
-					<p class="text-sm">This may take a few moments</p>
-				</div>
-			</div>
+			{@render loadingContent(
+				genProgress,
+				'Creating your workspace...',
+				'This may take a few moments',
+				false
+			)}
 		{:else if generatedImage}
 			<!-- Using ImageWithLoader with svelte:boundary for error handling -->
 			{#key generatedImage}
@@ -86,130 +147,171 @@
 						src={generatedImage}
 						alt="Generated workspace"
 						class="h-full w-full rounded-lg object-cover"
+						loading="eager"
 					/>
+
+					<!-- Loading overlay (appears on top of existing image during regeneration) -->
+					{#if isGenerating}
+						<div
+							class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/60 backdrop-blur-sm"
+						>
+							{@render loadingContent(
+								genProgress,
+								'Updating your workspace...',
+								'This may take a few moments',
+								true
+							)}
+						</div>
+					{:else}
+						<!-- Overlay actions on image (visible on hover when not generating) -->
+						<div
+							class="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+						>
+							{@render imageActions(generatedImage, props.tableId, persona.title)}
+						</div>
+					{/if}
 				</svelte:boundary>
 			{/key}
 		{:else}
 			<div class="flex flex-col items-center p-8 text-center text-gray-500 dark:text-gray-400">
-				<div class="mb-4 text-6xl">🏢</div>
+				<div class="mb-4 text-6xl"><BuildingOutline class="h-16 w-16" /></div>
 				<p class="text-lg font-medium">Ready to generate!</p>
 				<p class="text-sm">Complete the form and click "Generate Image".</p>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Action Buttons -->
-	<div class="flex-shrink-0 space-y-4">
-		{#if generatedImage && !isGenerating}
-			<Alert color="green" class="border-0">
-				<span class="font-medium">Image generated successfully!</span>
-				Review your workspace and lock it in when ready.
-			</Alert>
-			
-			<!-- Image Action Buttons (Download & Fullscreen) -->
-			<div class="flex justify-center gap-3 mb-3">
-				<button
-					onclick={() => downloadImage(generatedImage, `${getTableDisplayName(props.tableId)}-workspace.jpg`)}
-					class="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-					title="Download Image"
-				>
-					<DownloadOutline class="h-4 w-4" />
-					Download
-				</button>
-				<button
-					onclick={() => openFullscreen(generatedImage, persona.title)}
-					class="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-					title="View Fullscreen"
-				>
-					<ExpandOutline class="h-4 w-4" />
-					Fullscreen
-				</button>
-			</div>
-			
-			<div class="grid gap-3 sm:grid-cols-2">
-				<Button onclick={onGenerateImage} variant="outline" disabled={isGenerating} class="w-full">
-					↻ Regenerate
-				</Button>
-				<Button
-					onclick={onLockInImage}
-					variant="default"
-					disabled={isGenerating}
-					class="w-full bg-green-600 hover:bg-green-700"
-				>
-					🔒 Lock In & Submit
-				</Button>
-			</div>
-		{:else}
+	<!-- Mobile-optimized Action Buttons -->
+	<div class="flex-shrink-0 space-y-4 sm:space-y-6">
+		{#if !generatedImage}
 			<Button
-				onclick={onGenerateImage}
+				onclick={() => props.onGenerateImage?.()}
 				disabled={isGenerating || !isFormValid}
 				size="lg"
-				class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+				class="min-h-[56px] w-full bg-gradient-to-r from-purple-600 to-blue-600 text-base font-medium hover:from-purple-700 hover:to-blue-700 sm:min-h-0 sm:text-sm"
 			>
 				{#if isGenerating}
-					⚡ Generating{typeof props.genProgress === 'number' ? ` ${props.genProgress}%` : '...'}
+					<FireOutline class="mr-3 h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+					Generating{genProgress ? ` ${genProgress}%` : '...'}
 				{:else}
-					✨ Generate Workspace Image
+					<WandMagicSparklesOutline class="mr-3 h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+					Generate Workspace Image
 				{/if}
 			</Button>
 		{/if}
 
-		<!-- Prompt Preview Section -->
-		{#if progressValue > 50}
-			<div class="rounded-lg border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900">
-				<button
-					type="button"
-					onclick={() => onShowPromptPreviewChange(!showPromptPreview)}
-					class="flex w-full items-center justify-between p-3 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
-				>
-					<span>🔍 Preview AI Prompt</span>
-					<svg
-						class="h-4 w-4 transform transition-transform {showPromptPreview ? 'rotate-180' : ''}"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M19 9l-7 7-7-7"
-						/>
-					</svg>
-				</button>
-				{#if showPromptPreview}
-					<div class="border-t border-gray-200 p-4 dark:border-gray-600">
-						<div class="space-y-3">
-							<!-- Persona Info -->
-							{#if persona}
-								<div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-									<h4 class="text-sm font-semibold text-blue-800 dark:text-blue-300">
-										{persona.title}
-									</h4>
-									<p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
-										{persona.description}
-									</p>
-								</div>
-							{/if}
-
-							<!-- Full Prompt Preview -->
-							<div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-								<pre
-									class="max-h-40 overflow-y-auto text-xs whitespace-pre-wrap text-gray-700 dark:text-gray-300">{PromptBuilder.buildForDisplay(
-										persona,
-										formData,
-										true
-									)}</pre>
-							</div>
-
-							<p class="text-xs text-gray-500 dark:text-gray-400">
-								This prompt includes your persona details and all form inputs (with placeholders for
-								empty fields) that will guide the AI generation.
-							</p>
-						</div>
+		<!-- Edit/Regenerate and Lock & Submit buttons (when image exists) -->
+		{#if generatedImage && !isGenerating && !props.isLocked}
+			<div class="space-y-3">
+				{#if props.canUndo}
+					<!-- Simple Undo button -->
+					<div class="flex justify-center">
+						<Button
+							type="button"
+							color="alternative"
+							size="sm"
+							class="min-h-[40px] text-sm font-medium"
+							onclick={props.onUndo}
+						>
+							<ArrowLeftOutline class="mr-2 h-4 w-4" />
+							Undo
+						</Button>
 					</div>
 				{/if}
+
+				<div class="flex gap-4 sm:gap-3">
+					<Button
+						type="button"
+						color="alternative"
+						size="lg"
+						class="min-h-[48px] flex-1 text-base font-medium sm:min-h-0 sm:text-sm"
+						onclick={props.onEditRegenerate}
+					>
+						<EditOutline class="mr-3 h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+						Edit/Regenerate
+					</Button>
+					<Button
+						type="button"
+						color="green"
+						size="lg"
+						class="min-h-[48px] flex-1 text-base font-medium sm:min-h-0 sm:text-sm"
+						onclick={props.onLockInImage}
+					>
+						<LockOutline class="mr-3 h-5 w-5 sm:mr-2 sm:h-4 sm:w-4" />
+						Lock & Submit
+					</Button>
+				</div>
 			</div>
 		{/if}
 	</div>
 </div>
+
+<style>
+	@keyframes dot-bounce-sequence {
+		0%,
+		100% {
+			transform: translateY(0) scaleY(1) scaleX(1);
+		}
+		/* I -> squash to dot */
+		6% {
+			transform: translateY(0) scaleY(0.08) scaleX(1.2);
+		}
+		/* Dot bounces up high with overshoot */
+		14% {
+			transform: translateY(-35px) scaleY(0.1) scaleX(1.1);
+		}
+		/* Dot comes down and stretches to I */
+		22% {
+			transform: translateY(0) scaleY(1.3) scaleX(0.9);
+		}
+		/* Settle back to normal I */
+		28% {
+			transform: translateY(0) scaleY(1) scaleX(1);
+		}
+		/* Stretch I extra tall (lengthen) */
+		36% {
+			transform: translateY(-8px) scaleY(1.6) scaleX(0.8);
+		}
+		/* Compress back down to dot again */
+		42% {
+			transform: translateY(0) scaleY(0.1) scaleX(1.2);
+		}
+		/* First bounce of double bounce */
+		48% {
+			transform: translateY(-20px) scaleY(0.15) scaleX(1.1);
+		}
+		52% {
+			transform: translateY(0) scaleY(0.12) scaleX(1.15);
+		}
+		/* Second bounce - smaller */
+		56% {
+			transform: translateY(-12px) scaleY(0.18) scaleX(1.05);
+		}
+		60% {
+			transform: translateY(0) scaleY(0.1) scaleX(1.2);
+		}
+		/* Expand from dot back to I with bounce */
+		68% {
+			transform: translateY(-5px) scaleY(1.2) scaleX(0.9);
+		}
+		74% {
+			transform: translateY(0) scaleY(0.9) scaleX(1.05);
+		}
+		80% {
+			transform: translateY(0) scaleY(1.05) scaleX(0.98);
+		}
+		86% {
+			transform: translateY(0) scaleY(0.98) scaleX(1.01);
+		}
+		/* Final settle */
+		92% {
+			transform: translateY(0) scaleY(1) scaleX(1);
+		}
+	}
+
+	:global(.animate-dot-bounce) {
+		animation: dot-bounce-sequence 3s ease-in-out infinite;
+		transform-origin: bottom;
+		display: inline-block;
+	}
+</style>

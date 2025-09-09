@@ -1,4 +1,3 @@
-// Validation utilities and schemas
+// Validation utilities and schemas (legacy modules removed)
 export * from './common';
-export * from './prompt';
-export * from './workspace-form';
+export * from './schemas';

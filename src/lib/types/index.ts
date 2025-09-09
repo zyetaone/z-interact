@@ -142,68 +142,7 @@ export interface QRCodeGeneratorProps {
 	class?: string;
 }
 
-// Error Handling Types
-export enum ErrorSeverity {
-	LOW = 'low',
-	MEDIUM = 'medium',
-	HIGH = 'high',
-	CRITICAL = 'critical'
-}
-
-export enum ErrorType {
-	VALIDATION = 'validation',
-	NETWORK = 'network',
-	SERVER = 'server',
-	CLIENT = 'client',
-	AUTHENTICATION = 'authentication',
-	AUTHORIZATION = 'authorization',
-	NOT_FOUND = 'not_found',
-	TIMEOUT = 'timeout',
-	UNKNOWN = 'unknown'
-}
-
-export class AppError extends Error {
-	constructor(
-		message: string,
-		public type: ErrorType = ErrorType.UNKNOWN,
-		public severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-		public code?: string,
-		public details?: unknown,
-		public context?: string
-	) {
-		super(message);
-		this.name = 'AppError';
-	}
-}
-
-export class NetworkError extends AppError {
-	constructor(
-		message: string,
-		public statusCode?: number,
-		details?: unknown,
-		context?: string
-	) {
-		super(message, ErrorType.NETWORK, ErrorSeverity.HIGH, 'NETWORK_ERROR', details, context);
-		this.name = 'NetworkError';
-	}
-}
-
-export class ValidationError extends AppError {
-	constructor(
-		message: string,
-		public fields?: Record<string, string>,
-		context?: string
-	) {
-		super(message, ErrorType.VALIDATION, ErrorSeverity.LOW, 'VALIDATION_ERROR', fields, context);
-		this.name = 'ValidationError';
-	}
-}
-
-export interface ErrorBoundaryState {
-	hasError: boolean;
-	error: AppError | null;
-	errorId: string | null;
-}
+// Simple error types for basic error handling with svelte:boundary
 
 // Utility Types
 export type DeepPartial<T> = {
@@ -275,6 +214,56 @@ export interface Table {
 	personaId: string;
 }
 
+// Workspace Management Types
+export interface WorkspaceGallery {
+	currentUrl: string | null;
+	previousUrl: string | null; // Simple undo: swap current with previous
+	originalUrl: string | null;
+	isEdited: boolean;
+	provider: 'fal.ai' | 'dall-e' | 'upload' | null;
+	isTemporary: boolean;
+	prompt: string;
+	generatedAt?: number;
+	lockedAt?: number;
+	editCount?: number; // Track number of edit/regenerate operations (max 20)
+}
+
+export interface WorkspaceData {
+	// Identity
+	id: string;
+	personaId: string;
+	displayName: string;
+
+	// Workspace status
+	status: 'empty' | 'form-active' | 'generating' | 'generated' | 'editing' | 'locked';
+
+	// Gallery management (with revert support)
+	gallery: WorkspaceGallery | null;
+
+	// Form data
+	form: {
+		fields: PromptFields;
+		progress: number;
+		errors: Partial<PromptFields>;
+	};
+
+	// Generation tracking
+	generation: {
+		isActive: boolean;
+		progress: number;
+	};
+
+	// Lock status
+	isLocked: boolean;
+
+	// Activity tracking
+	activity: {
+		current: 'idle' | 'form_edit' | 'generating' | 'generated' | 'edited' | 'locked';
+		lastUpdated: number;
+		sessionStarted?: number;
+	};
+}
+
 // App Configuration Types
 export interface AppConfig {
 	masterSystemPrompt: string;
@@ -285,3 +274,7 @@ export interface AppConfig {
 		status: 'active' | 'inactive' | 'upcoming';
 	};
 }
+
+// Temporary compatibility exports (will be removed after migration)
+export type TableState = WorkspaceData;
+export type TableImageState = WorkspaceGallery;

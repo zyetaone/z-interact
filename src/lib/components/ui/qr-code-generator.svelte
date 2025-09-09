@@ -1,5 +1,7 @@
 <script lang="ts">
 	import QRCode from 'qrcode';
+	import { Spinner } from 'flowbite-svelte';
+	import { MobilePhoneOutline, ExclamationCircleOutline } from 'flowbite-svelte-icons';
 
 	interface QRCodeGeneratorProps {
 		url: string;
@@ -47,10 +49,13 @@
 <div class="qr-code-container {className}">
 	{#if loading}
 		<div
-			class="flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800"
+			class="glass-morphism flex items-center justify-center rounded-lg border border-blue-200/30 p-3 backdrop-blur-sm dark:border-blue-800/30"
 			style="width: {size}px; height: {size}px;"
 		>
-			<div class="h-6 w-6 animate-spin rounded-full border-b-2 border-slate-600"></div>
+			<div class="text-center">
+				<Spinner color="blue" size="8" />
+				<div class="mt-1 text-[11px] text-slate-600 dark:text-slate-300">Generating QR…</div>
+			</div>
 		</div>
 	{:else if error}
 		<div
@@ -58,7 +63,7 @@
 			style="width: {size}px; height: {size}px;"
 		>
 			<div class="text-center">
-				<div class="mb-1 text-lg">⚠️</div>
+				<div class="mb-1 text-lg"><ExclamationCircleOutline class="h-6 w-6" /></div>
 				<div class="text-xs">QR Error</div>
 			</div>
 		</div>
@@ -71,11 +76,13 @@
 		/>
 	{:else}
 		<div
-			class="flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800"
+			class="glass-morphism flex items-center justify-center rounded-lg border border-blue-200/30 p-3 backdrop-blur-sm dark:border-blue-800/30"
 			style="width: {size}px; height: {size}px;"
 		>
 			<div class="text-center text-slate-500">
-				<div class="mb-1 text-lg">📱</div>
+				<div class="mb-1">
+					<MobilePhoneOutline class="mx-auto h-6 w-6" />
+				</div>
 				<div class="text-xs">No QR Code</div>
 			</div>
 		</div>

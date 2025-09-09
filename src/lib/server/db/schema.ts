@@ -8,7 +8,7 @@ import {
 	optionalUrlPipe,
 	promptPipe,
 	requiredStringPipe
-} from '$lib/validation/common';
+} from '../../validation/common';
 
 // Images table - compatible with existing structure, no foreign keys
 export const images = sqliteTable('images', {

@@ -1,5 +1,8 @@
 import { createSubscriber } from 'svelte/reactivity';
-import { imageStore } from '$lib/stores/image-store.svelte';
+import { getAllWorkspaces } from '$lib/stores/workspace-store.svelte';
+import { listImagesSince } from '../../routes/gallery/gallery.remote';
+import { logger } from '$lib/utils/logger';
+import type { WorkspaceData } from '$lib/types';
 
 /**
  * Smart gallery feed with exponential backoff and completion detection
@@ -29,41 +32,46 @@ export class SmartGalleryFeed {
 		this.#subscribe = createSubscriber((update) => {
 			// Start polling when subscribed
 			this.#isActive = true;
-			console.log('[SmartGalleryFeed] Starting smart polling');
+			logger.info('Starting smart polling', { component: 'SmartGalleryFeed' });
 
+			let firstRun = true;
 			const poll = async () => {
 				// Check if all tables are ready (stop condition)
-				if (imageStore.areAllTablesReady()) {
-					console.log('[SmartGalleryFeed] All tables ready, stopping polling');
+				if (this.areAllTablesReady()) {
+					logger.info('All tables ready, stopping polling', { component: 'SmartGalleryFeed' });
 					this.#isActive = false;
 					this.onComplete?.();
 					return;
 				}
 
 				try {
-					// Simple refresh
-					await imageStore.refresh();
-					const changeCount = imageStore.images.length;
+					// Incremental refresh
+					const since = firstRun ? 0 : this.#lastUpdate;
+					const images = await listImagesSince({ since, admin: true, limit: 100 });
+					const changeCount = images.length;
 
-					console.log(`[SmartGalleryFeed] Refreshed ${changeCount} images`);
+					logger.debug('Refreshed images', { component: 'SmartGalleryFeed', count: changeCount });
 					this.#lastUpdate = Date.now();
+					firstRun = false;
 					update();
 					this.onUpdate?.(changeCount);
 
 					// Reset backoff on successful update
 					this.#backoffMultiplier = 1;
 				} catch (error) {
-					console.error('[SmartGalleryFeed] Poll error:', error);
+					logger.warn('Poll error', { component: 'SmartGalleryFeed' }, error as any);
 					// Increase backoff on error
 					this.updateBackoff();
 				}
 
 				// Schedule next poll if still active
-				if (this.#isActive && !imageStore.areAllTablesReady()) {
+				if (this.#isActive && !this.areAllTablesReady()) {
 					const nextInterval = this.basePollInterval * this.#backoffMultiplier;
-					console.log(
-						`[SmartGalleryFeed] Next poll in ${nextInterval}ms (backoff: ${this.#backoffMultiplier}x)`
-					);
+					logger.debug('Next poll scheduled', {
+						component: 'SmartGalleryFeed',
+						nextInterval,
+						backoff: this.#backoffMultiplier
+					});
 					this.#pollInterval = setTimeout(poll, nextInterval);
 				}
 			};
@@ -73,7 +81,7 @@ export class SmartGalleryFeed {
 
 			// Return cleanup function
 			return () => {
-				console.log('[SmartGalleryFeed] Stopping smart polling');
+				logger.info('Stopping smart polling', { component: 'SmartGalleryFeed' });
 				this.#isActive = false;
 				if (this.#pollInterval) {
 					clearTimeout(this.#pollInterval);
@@ -85,7 +93,7 @@ export class SmartGalleryFeed {
 
 	// Update backoff multiplier based on table completion
 	private updateBackoff() {
-		const filledCount = imageStore.getFilledTableCount();
+		const filledCount = this.getFilledTableCount();
 
 		// Exponential backoff based on filled tables
 		// More filled tables = longer delays
@@ -120,29 +128,29 @@ export class SmartGalleryFeed {
 
 	// Force an immediate refresh
 	async refresh() {
-		console.log('[SmartGalleryFeed] Manual refresh triggered');
+		logger.info('Manual refresh triggered', { component: 'SmartGalleryFeed' });
 		this.#lastUpdate = Date.now();
 
 		try {
-			await imageStore.refresh();
-			const changeCount = imageStore.images.length;
+			const images = await listImagesSince({ since: 0, admin: true, limit: 100 });
+			const changeCount = images.length;
 			this.onUpdate?.(changeCount);
 			// Reset backoff on manual refresh
 			this.#backoffMultiplier = 1;
 		} catch (error) {
-			console.error('[SmartGalleryFeed] Manual refresh error:', error);
+			logger.warn('Manual refresh error', { component: 'SmartGalleryFeed' }, error as any);
 		}
 	}
 
 	// Change base polling interval
 	setInterval(ms: number) {
 		this.basePollInterval = ms;
-		console.log(`[SmartGalleryFeed] Base interval changed to ${ms}ms`);
+		logger.debug('Base interval changed', { component: 'SmartGalleryFeed', ms });
 	}
 
 	// Stop polling manually
 	stop() {
-		console.log('[SmartGalleryFeed] Manual stop requested');
+		logger.info('Manual stop requested', { component: 'SmartGalleryFeed' });
 		this.#isActive = false;
 		if (this.#pollInterval) {
 			clearTimeout(this.#pollInterval);
@@ -152,10 +160,19 @@ export class SmartGalleryFeed {
 
 	// Resume polling if stopped
 	resume() {
-		if (!this.#isActive && !imageStore.areAllTablesReady()) {
-			console.log('[SmartGalleryFeed] Resuming polling');
+		if (!this.#isActive && !this.areAllTablesReady()) {
+			logger.info('Resuming polling', { component: 'SmartGalleryFeed' });
 			this.#isActive = true;
 			this.#subscribe();
 		}
+	}
+
+	// Helper methods using workspace system
+	private areAllTablesReady(): boolean {
+		return getAllWorkspaces().filter((w: WorkspaceData) => w.isLocked).length >= 10;
+	}
+
+	private getFilledTableCount(): number {
+		return getAllWorkspaces().filter((w: WorkspaceData) => w.gallery?.currentUrl).length;
 	}
 }

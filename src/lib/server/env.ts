@@ -1,143 +1,29 @@
-// Unified Environment Management for SvelteKit
-// Provides type-safe, platform-compatible access to all environment variables
-
+// Cloudflare Workers-compatible environment management for SvelteKit
 import { env as svelteEnv } from '$env/dynamic/private';
-import type { Platform } from '$lib/types';
 
-// Environment interface for type safety
-export interface EnvConfig {
-	// Core application variables
-	DATABASE_URL: string;
-	FAL_API_KEY?: string;
-	SESSION_SECRET?: string;
-
-	// Cloudflare-specific variables
-	CLOUDFLARE_API_TOKEN?: string;
-	CLOUDFLARE_ACCOUNT_ID?: string;
-
-	// Migration and development variables
-	MIGRATION_API_URL?: string;
-	NODE_ENV?: string;
-
-	// Optional variables for enhanced functionality
-	SENTRY_DSN?: string;
-	LOG_LEVEL?: string;
-}
-
-// Platform detection
-function isCloudflareWorkers(): boolean {
-	return (
-		typeof globalThis !== 'undefined' &&
-		typeof globalThis.process === 'undefined' &&
-		typeof globalThis.navigator !== 'undefined'
-	);
-}
-
-// Unified environment accessor with platform compatibility
-function getEnvValue(key: string, platform?: Platform): string | undefined {
-	// Cloudflare Workers environment
-	if (platform?.env?.[key]) {
-		const value = platform.env[key];
-		return typeof value === 'string' ? value : undefined;
-	}
-
-	// Node.js/process.env (for scripts and config files)
-	if (typeof process !== 'undefined' && process.env?.[key]) {
+// Safe process.env access that works in both Node.js and Cloudflare Workers
+const getProcessEnv = (key: string): string | undefined => {
+	if (typeof process !== 'undefined' && process.env) {
 		return process.env[key];
 	}
-
-	// SvelteKit environment (development)
-	if (svelteEnv[key]) {
-		return svelteEnv[key];
-	}
-
 	return undefined;
-}
+};
 
-// Main environment configuration class
-export class Environment {
-	private platform?: Platform;
+// Pre-resolve all environment variables to avoid process.env in bundled output
+const DATABASE_URL_VALUE = getProcessEnv('DATABASE_URL') || svelteEnv.DATABASE_URL || 'file:./local.db';
+const FAL_API_KEY_VALUE = getProcessEnv('FAL_API_KEY ') || getProcessEnv('FAL_API_KEY') || svelteEnv.FAL_API_KEY;
+const SESSION_SECRET_VALUE = getProcessEnv('SESSION_SECRET') || svelteEnv.SESSION_SECRET || 'dev-secret';
+const CLOUDFLARE_API_TOKEN_VALUE = getProcessEnv('CLOUDFLARE_API_TOKEN') || svelteEnv.CLOUDFLARE_API_TOKEN;
+const CLOUDFLARE_ACCOUNT_ID_VALUE = getProcessEnv('CLOUDFLARE_ACCOUNT_ID') || svelteEnv.CLOUDFLARE_ACCOUNT_ID;
+const NODE_ENV_VALUE = getProcessEnv('NODE_ENV') || 'development';
 
-	constructor(platform?: Platform) {
-		this.platform = platform;
-	}
-
-	// Core application variables
-	get DATABASE_URL(): string {
-		return getEnvValue('DATABASE_URL', this.platform) || 'file:./local.db';
-	}
-
-	get FAL_API_KEY(): string | undefined {
-		// Check with trailing space first (Cloudflare bug)
-		return getEnvValue('FAL_API_KEY ', this.platform) || getEnvValue('FAL_API_KEY', this.platform);
-	}
-
-	get SESSION_SECRET(): string {
-		const secret = getEnvValue('SESSION_SECRET', this.platform);
-		if (!secret) {
-			// Generate a fallback secret for development/build purposes
-			return 'fallback-session-secret-' + Date.now().toString(36);
-		}
-		return secret;
-	}
-
-	// Cloudflare-specific variables
-	get CLOUDFLARE_API_TOKEN(): string | undefined {
-		return getEnvValue('CLOUDFLARE_API_TOKEN', this.platform);
-	}
-
-	get CLOUDFLARE_ACCOUNT_ID(): string | undefined {
-		return getEnvValue('CLOUDFLARE_ACCOUNT_ID', this.platform);
-	}
-
-	// Migration and development variables
-	get MIGRATION_API_URL(): string {
-		return (
-			getEnvValue('MIGRATION_API_URL', this.platform) || 'http://localhost:8788/api/migrate-images'
-		);
-	}
-
-	get NODE_ENV(): string {
-		return getEnvValue('NODE_ENV', this.platform) || 'development';
-	}
-
-	// Optional variables
-	get SENTRY_DSN(): string | undefined {
-		return getEnvValue('SENTRY_DSN', this.platform);
-	}
-
-	get LOG_LEVEL(): string {
-		return getEnvValue('LOG_LEVEL', this.platform) || 'info';
-	}
-
-	// Utility methods
-	isProduction(): boolean {
-		return this.NODE_ENV === 'production';
-	}
-
-	isDevelopment(): boolean {
-		return this.NODE_ENV === 'development';
-	}
-
-	isCloudflare(): boolean {
-		return isCloudflareWorkers();
-	}
-
-	// Get all environment variables as a typed object
-	toConfig(): EnvConfig {
-		return {
-			DATABASE_URL: this.DATABASE_URL,
-			FAL_API_KEY: this.FAL_API_KEY,
-			SESSION_SECRET: this.SESSION_SECRET,
-			CLOUDFLARE_API_TOKEN: this.CLOUDFLARE_API_TOKEN,
-			CLOUDFLARE_ACCOUNT_ID: this.CLOUDFLARE_ACCOUNT_ID,
-			MIGRATION_API_URL: this.MIGRATION_API_URL,
-			NODE_ENV: this.NODE_ENV,
-			SENTRY_DSN: this.SENTRY_DSN,
-			LOG_LEVEL: this.LOG_LEVEL
-		};
-	}
-}
-
-// Default instance for convenience
-export const env = new Environment();
+// Environment access with Cloudflare Workers compatibility
+// Values are pre-resolved to avoid bundling process.env references
+export const env = {
+	DATABASE_URL: DATABASE_URL_VALUE,
+	FAL_API_KEY: FAL_API_KEY_VALUE,
+	SESSION_SECRET: SESSION_SECRET_VALUE,
+	CLOUDFLARE_API_TOKEN: CLOUDFLARE_API_TOKEN_VALUE,
+	CLOUDFLARE_ACCOUNT_ID: CLOUDFLARE_ACCOUNT_ID_VALUE,
+	NODE_ENV: NODE_ENV_VALUE
+};
