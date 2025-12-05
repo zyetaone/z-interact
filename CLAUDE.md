@@ -54,18 +54,14 @@ This is an AI-powered workspace design platform for interactive seminars:
 
 #### Database Schema (`src/lib/server/db/schema.ts`)
 
-- **users** - Authentication and role management
-- **sessions** - Presentation sessions with codes
-- **participants** - Session attendees with persona assignments
-- **images** - Generated workspace images with multi-source URLs
-- **activityLogs** - Analytics and activity tracking
-- Uses proper foreign key relations and TypeScript inference
+- **images** - Generated workspace images with tableId, personaId, imageUrl, prompt, status
+- Uses Drizzle ORM with Valibot validation schemas
 
 #### State Management Architecture
 
-- **Central Image Store** (`src/lib/stores/image-store.svelte.ts`) - Single source of truth using SvelteMap for O(1) lookups
-- **Smart Polling** (`src/lib/realtime/smart-feed.svelte.ts`) - Exponential backoff with automatic stop when all tables filled
-- **Binary Utilities** (`src/lib/utils/binary.ts`) - Centralized base64/blob conversion with caching
+- **Workspace Store** (`src/lib/stores/workspace-store.svelte.ts`) - Central SSOT using SvelteMap for O(1) lookups
+- **Config Store** (`src/lib/stores/config-store.svelte.ts`) - Personas, tables, PromptBuilder
+- **Smart Polling** (`src/lib/realtime/smart-feed.svelte.ts`) - Polling with automatic stop when all tables filled
 
 #### AI Image Generation (`src/lib/server/ai/`)
 
@@ -139,7 +135,8 @@ src/
 │       └── ui/                   # Flowbite-based UI components
 ├── routes/
 │   ├── gallery/
-│   │   ├── +page.svelte          # Gallery view
+│   │   ├── +page.svelte          # Gallery grid view
+│   │   ├── [tableId]/+page.svelte # Detail view (shows generation, age, prompt)
 │   │   └── gallery.remote.ts     # Image CRUD remote functions
 │   ├── table/
 │   │   ├── [tableId]/+page.svelte # Participant workspace form
@@ -208,12 +205,12 @@ lockWorkspace(tableId);
 
 #### Table/Persona Mapping
 
-10 tables mapped to 5 personas (2 tables each):
-- Tables 1-2: baby-boomer
-- Tables 3-4: gen-x
-- Tables 5-6: millennial
-- Tables 7-8: gen-z
-- Tables 9-10: gen-alpha
+10 tables mapped to 5 personas (cycling pattern):
+- Table 1, 6: baby-boomer (CXO Executive, 68yo)
+- Table 2, 7: gen-x (Serial Entrepreneur, 55yo)
+- Table 3, 8: millennial (Head of R&D, 38yo)
+- Table 4, 9: gen-z (AI Startup Founder, 27yo)
+- Table 5, 10: gen-alpha (Student Innovator, 20yo)
 
 ### Architecture Decisions
 
