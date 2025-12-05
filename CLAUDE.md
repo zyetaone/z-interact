@@ -6,11 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Core Development
 
-- `npm run dev` - Start development server at http://localhost:5173
-- `npm run build` - Build production application
+- `npm run dev` - Start Vite dev server at http://localhost:5173
+- `npm run build` - Build for Cloudflare Pages
 - `npm run preview` - Preview production build locally
 - `npm run check` - Run Svelte type checking
 - `npm run check:watch` - Run type checking in watch mode
+
+### Cloudflare Workers Development
+
+- `npm run dev:wrangler` - Run with Wrangler (after build, for D1/R2 access)
+- `npm run dev:local` - Build and run with Wrangler + live-reload
 
 ### Code Quality
 
@@ -19,10 +24,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Database Operations
 
-- `npm run db:generate` - Generate Drizzle migrations from schema
-- `npm run db:push` - Push schema changes to database
+- `npm run db:generate` - Generate Drizzle migrations from schema changes
+- `npm run db:push` - Push schema directly to D1 (dev workflow)
 - `npm run db:migrate` - Apply migrations to database
-- `npm run db:studio` - Open Drizzle Studio database GUI
+- `npm run db:studio` - Open Drizzle Studio GUI
 
 ## Application Architecture
 
@@ -72,8 +77,39 @@ This is an AI-powered workspace design platform for interactive seminars:
 
 - **Svelte 5 Runes**: `$state`, `$derived`, `$effect` for reactivity
 - **SvelteMap/SvelteSet**: From `svelte/reactivity` for reactive collections
-- **Remote Functions**: Using `.updates()` for automatic query refresh
-- **Differential Updates**: Only fetch changes since last sync timestamp
+- **Differential Updates**: `syncWorkspaces()` fetches only changes since last timestamp
+
+#### Remote Functions Pattern (SvelteKit)
+
+Server-side functions using `query` and `command` from `$app/server`:
+
+```typescript
+// query - for reads, supports streaming generators
+export const listImages = query(Schema, async (data) => { ... });
+
+// command - for mutations
+export const lockImage = command(Schema, async (data) => { ... });
+
+// Streaming with async generators for progress
+export const startGenerationStream = query(Schema, async function* (data) {
+  yield { type: 'progress', data: { progress: 50 } };
+  yield { type: 'result', data: { imageUrl: '...' } };
+});
+```
+
+#### Validation Pattern (Valibot)
+
+Shared validation pipes in `src/lib/validation/common.ts`:
+
+```typescript
+import { personaIdPipe, promptPipe, urlPipe } from '$lib/validation/common';
+
+export const MySchema = v.object({
+  personaId: personaIdPipe,
+  prompt: promptPipe,
+  imageUrl: urlPipe
+});
+```
 
 ### Project Structure
 
@@ -82,155 +118,110 @@ src/
 ├── lib/
 │   ├── server/
 │   │   ├── db/
-│   │   │   ├── schema.ts         # Database schema with TypeScript types
-│   │   │   └── queries.ts        # Centralized database queries
-│   │   ├── ai/image-generator.ts # AI image generation with provider abstraction
-│   │   ├── r2-storage.ts         # Cloudflare R2 object storage
-│   │   └── event-bus.ts          # Event broadcasting (limited use with Workers)
+│   │   │   ├── schema.ts         # Drizzle schema + Valibot validation
+│   │   │   ├── queries.ts        # Centralized database queries
+│   │   │   └── utils.ts          # getDatabase() helper
+│   │   ├── ai/image-generator.ts # FAL.ai provider with factory pattern
+│   │   └── env.ts                # Platform environment access
 │   ├── stores/
-│   │   ├── image-store.svelte.ts # Central SSOT with SvelteMap
-│   │   └── toast.svelte.ts       # Toast notifications
-│   ├── realtime/
-│   │   └── smart-feed.svelte.ts  # Smart polling with backoff
+│   │   ├── workspace-store.svelte.ts # Central SSOT with SvelteMap
+│   │   ├── config-store.svelte.ts    # Personas, tables, PromptBuilder
+│   │   └── toast.svelte.ts           # Toast notifications
+│   ├── validation/
+│   │   ├── schemas.ts            # Valibot schemas for remote functions
+│   │   └── common.ts             # Shared validation pipes
+│   ├── types/
+│   │   └── index.ts              # Centralized TypeScript types
 │   ├── utils/
-│   │   ├── binary.ts             # Base64/blob conversions
-│   │   └── image-utils.ts        # Image utilities
+│   │   ├── image-utils.ts        # Image URL validation
+│   │   └── logger.ts             # Structured logging
 │   └── components/
-│       └── ui/                   # Reusable UI components
+│       └── ui/                   # Flowbite-based UI components
 ├── routes/
 │   ├── gallery/
-│   │   ├── +page.svelte          # Gallery view using central store
-│   │   └── gallery.remote.ts     # Remote functions with differential queries
+│   │   ├── +page.svelte          # Gallery view
+│   │   └── gallery.remote.ts     # Image CRUD remote functions
 │   ├── table/
-│   │   ├── [tableId]/+page.svelte # Table-specific participant forms
-│   │   └── ai.remote.ts          # AI generation remote functions
-│   └── +page.svelte              # Presenter dashboard
-└── app.css                       # Global styles with CSS variables
+│   │   ├── [tableId]/+page.svelte # Participant workspace form
+│   │   └── ai.remote.ts          # generateImage, editImage, lockImage
+│   ├── storage/
+│   │   └── r2.remote.ts          # R2 upload/delete operations
+│   └── +page.svelte              # QR codes dashboard
+└── app.css                       # Tailwind CSS 4 styles
 ```
 
 ### Environment Variables
 
+Local dev uses `.env`, production uses Cloudflare dashboard secrets:
+
 ```
-DATABASE_URL=file:./local.db
-FAL_API_KEY=your-key-here
-OPENAI_API_KEY=your-key-here
-SESSION_SECRET=your-secret-here
-R2_PUBLIC_URL=your-r2-url
+FAL_API_KEY=your-key-here        # Set as secret in Cloudflare
+R2_PUBLIC_URL=https://...r2.dev  # Public R2 bucket URL
 ```
+
+Bindings in `wrangler.toml`:
+- `z_interact_db` - D1 database
+- `R2_IMAGES` - R2 bucket for image storage
 
 ### Important Implementation Notes
 
-#### Modern Svelte 5 Patterns
+#### Cloudflare Platform Access
 
-- **SvelteMap for Reactive Collections**:
-
-```typescript
-const imagesById = new SvelteMap<string, ImageEntity>();
-const tableState = new SvelteMap<string, TableInfo>();
-```
-
-- **Remote Functions with Updates**:
+Get D1/R2 bindings via platform:
 
 ```typescript
-await saveImage({...}).updates(
-  listImages({}).withOverride((images) =>
-    // Optimistic update logic
-  )
-);
-```
+import { getRequestEvent } from '$app/server';
 
-- **Smart Polling with createSubscriber**:
-
-```typescript
-const subscribe = createSubscriber((update) => {
-	// Polling logic with cleanup
-	return () => {
-		/* cleanup */
-	};
-});
-```
-
-- **Await Expressions in Components**:
-
-```svelte
-{#await listImages({})}
-	<!-- Loading -->
-{:then images}
-	<!-- Display images -->
-{:catch error}
-	<!-- Error handling -->
-{/await}
+const event = getRequestEvent();
+const platform = event?.platform;
+const db = platform?.env?.z_interact_db;
+const r2 = platform?.env?.R2_IMAGES;
 ```
 
 #### Database Connection
 
 - Uses Drizzle ORM with D1 (Cloudflare Workers)
-- Connection configured in `drizzle.config.ts`
-- Schema changes require `npm run db:generate` then `npm run db:push`
-- Differential queries support with timestamp tracking
+- `getDatabase()` in `src/lib/server/db/utils.ts` handles platform access
+- Schema changes: `npm run db:generate` then `npm run db:push`
 
-#### Image Storage & Display Strategy
+#### Image Generation Flow
 
-- **Multi-source Priority**: R2 > DB > fal.ai > blob > base64
-- **Cloudflare R2**: Primary storage with global CDN distribution
-- **Source Switching**: Automatic transition from preview to final
-- **Binary Caching**: Blob URLs cached to avoid recreation
-- **Central Store**: Single source of truth for all image state
+1. **Generate**: `generateImage()` calls FAL.ai, returns temporary URL
+2. **Preview**: User sees fal.ai URL (temporary, expires)
+3. **Lock**: `lockImage()` uploads to R2, saves to D1 with permanent URL
+4. **Gallery**: `syncWorkspaces()` fetches locked images for display
 
-#### Table Completion Tracking
+#### Workspace Store Pattern
 
-- **10 Tables Total**: Each mapped to a persona (baby-boomer, gen-x, millennial, gen-z, gen-alpha)
-- **Completion Detection**: Table marked 'ready' when image is locked
-- **Auto-stop Polling**: System stops polling when all tables ready
-- **Visual Indicators**: Lock icons and status bars show completion state
+Central state in `workspace-store.svelte.ts`:
 
-#### Component Styling
+```typescript
+const workspaces = $state(new SvelteMap<string, WorkspaceData>());
 
-- Bits UI components wrapped with custom styling in `src/lib/components/ui/`
-- Tailwind CSS classes with theme customization
-- Toast notifications for user feedback
-- Error boundaries with `<svelte:boundary>`
+// Sync with database
+await syncWorkspaces({ tableId, reset: true });
 
-#### Smart Update System (Cloudflare Workers Compatible)
+// Update local state
+setWorkspaceGallery(tableId, imageUrl, prompt);
+lockWorkspace(tableId);
+```
 
-- **Differential Polling**: `listImagesSince()` fetches only changes since last sync
-- **Exponential Backoff**: Polling frequency decreases as tables fill (1.1x to 16x multiplier)
-- **Automatic Stop**: Polling halts when all 10 tables have locked images
-- **Remote Functions**: Use `.updates()` for query refresh with optimistic UI
-- **Multi-source Display**: Automatic switching from fal.ai preview to R2/DB final image
+#### Table/Persona Mapping
 
-### Testing Strategy
-
-The application includes comprehensive error handling and user feedback but tests would need to be implemented. Key areas to test:
-
-- Database operations with Drizzle
-- Image generation and storage
-- Smart polling with differential updates
-- Form validation and submission
-- Central store state management
-
-### Security Considerations
-
-- Password hashing with Argon2
-- Input validation on all API endpoints
-- Environment variable protection
-- SQL injection prevention via Drizzle parameterized queries
+10 tables mapped to 5 personas (2 tables each):
+- Tables 1-2: baby-boomer
+- Tables 3-4: gen-x
+- Tables 5-6: millennial
+- Tables 7-8: gen-z
+- Tables 9-10: gen-alpha
 
 ### Architecture Decisions
 
-#### Why Not SSE/WebSockets?
+#### Why Polling Instead of SSE/WebSockets?
 
 - Cloudflare Workers are stateless (no persistent connections)
-- Smart polling with differential queries achieves similar UX
-- Exponential backoff minimizes unnecessary requests
-- System automatically stops when complete
-
-#### Performance Optimizations
-
-- SvelteMap for O(1) lookups vs array operations
-- Differential queries reduce data transfer
-- Binary caching prevents redundant conversions
-- Smart backoff reduces server load as tables fill
+- `syncWorkspaces()` with timestamp tracking achieves similar UX
+- System stops polling when all tables have locked images
 
 # important-instruction-reminders
 

@@ -49,9 +49,29 @@
 	const prompt = $derived(workspace?.gallery?.prompt || '');
 	const isLocked = $derived(workspace?.isLocked || false);
 	const hasImage = $derived(!!imageUrl);
-	const personaTitle = $derived(
-		workspace?.personaId ? getPersonaById(workspace.personaId)?.title || 'Workspace' : 'Workspace'
-	);
+
+	// Get full persona info
+	const persona = $derived(workspace?.personaId ? getPersonaById(workspace.personaId) : null);
+	const personaTitle = $derived(persona?.title || 'Workspace');
+
+	// Format generation name (baby-boomer → Baby Boomer, gen-x → Gen X, etc.)
+	const generationName = $derived.by(() => {
+		if (!persona?.id) return '';
+		const id = persona.id;
+		if (id === 'baby-boomer') return 'Baby Boomer';
+		if (id === 'gen-x') return 'Gen X';
+		if (id === 'millennial') return 'Millennial';
+		if (id === 'gen-z') return 'Gen Z';
+		if (id === 'gen-alpha') return 'Gen Alpha';
+		return id;
+	});
+
+	// Extract age from persona description (e.g., "68-year-old CXO..." → "68")
+	const personaAge = $derived.by(() => {
+		if (!persona?.description) return '';
+		const match = persona.description.match(/(\d+)-year-old/);
+		return match ? match[1] : '';
+	});
 
 	function goBack() {
 		goto(`${base}/gallery`);
@@ -253,8 +273,16 @@
 										<Badge color="indigo" class="z-20 px-4 py-2 text-base font-semibold">
 											{personaTitle}
 										</Badge>
-										<!-- Regeneration badge removed from overlay by request -->
-										<!-- Revision badge removed from overlay by request -->
+										{#if generationName}
+											<Badge color="purple" class="z-20 px-4 py-2 text-base font-semibold">
+												{generationName}
+											</Badge>
+										{/if}
+										{#if personaAge}
+											<Badge color="green" class="z-20 px-4 py-2 text-base font-semibold">
+												{personaAge} years old
+											</Badge>
+										{/if}
 									</div>
 								</div>
 
