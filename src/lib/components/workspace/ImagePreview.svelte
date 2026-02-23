@@ -64,7 +64,11 @@
 				? 'from-purple-400 to-blue-400'
 				: 'from-purple-600 to-blue-600'}"
 		>
-			Zyeta<span class="animate-dot-bounce inline-block">I</span>
+			Zyeta<span
+				class="animate-dot-bounce inline-block bg-gradient-to-r bg-clip-text text-transparent {isDark
+					? 'from-purple-400 to-blue-400'
+					: 'from-purple-600 to-blue-600'}"
+			>I</span>
 		</h3>
 	</div>
 {/snippet}
@@ -264,11 +268,11 @@
 		}
 		/* I -> squash to dot */
 		6% {
-			transform: translateY(0) scaleY(0.08) scaleX(1.2);
+			transform: translateY(0) scaleY(0.3) scaleX(1.4);
 		}
 		/* Dot bounces up high with overshoot */
 		14% {
-			transform: translateY(-35px) scaleY(0.1) scaleX(1.1);
+			transform: translateY(-35px) scaleY(0.3) scaleX(1.3);
 		}
 		/* Dot comes down and stretches to I */
 		22% {
@@ -284,21 +288,21 @@
 		}
 		/* Compress back down to dot again */
 		42% {
-			transform: translateY(0) scaleY(0.1) scaleX(1.2);
+			transform: translateY(0) scaleY(0.3) scaleX(1.4);
 		}
 		/* First bounce of double bounce */
 		48% {
-			transform: translateY(-20px) scaleY(0.15) scaleX(1.1);
+			transform: translateY(-20px) scaleY(0.3) scaleX(1.3);
 		}
 		52% {
-			transform: translateY(0) scaleY(0.12) scaleX(1.15);
+			transform: translateY(0) scaleY(0.3) scaleX(1.35);
 		}
 		/* Second bounce - smaller */
 		56% {
-			transform: translateY(-12px) scaleY(0.18) scaleX(1.05);
+			transform: translateY(-12px) scaleY(0.3) scaleX(1.2);
 		}
 		60% {
-			transform: translateY(0) scaleY(0.1) scaleX(1.2);
+			transform: translateY(0) scaleY(0.3) scaleX(1.4);
 		}
 		/* Expand from dot back to I with bounce */
 		68% {
@@ -323,5 +327,8 @@
 		animation: dot-bounce-sequence 3s ease-in-out infinite;
 		transform-origin: bottom;
 		display: inline-block;
+		will-change: transform;
+		-webkit-backface-visibility: hidden;
+		backface-visibility: hidden;
 	}
 </style>
