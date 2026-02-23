@@ -2,7 +2,6 @@
 	import { globalConfig, RENDERING_SPECS, updateEventInfo } from '$lib/stores/config-store.svelte';
 	import {
 		getWorkspace,
-		getOverallProgress,
 		clearAllLocks,
 		resetAllWorkspaces
 	} from '$lib/stores/workspace-store.svelte';
@@ -57,7 +56,6 @@
 	let selectedTableURL = $state<string>('');
 
 	// Derived values
-	const overallProgress = $derived(getOverallProgress());
 	const completedTables = $derived(
 		globalConfig.tables.filter((t) => {
 			const workspace = getWorkspace(t.id);
@@ -203,29 +201,6 @@
 	class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 pb-4 pt-20 dark:from-gray-900 dark:to-gray-800"
 >
 	<div class="mx-auto max-w-7xl">
-		<!-- Header -->
-		<div class="mb-8">
-			<div class="flex items-center justify-end">
-				<!-- Overall Progress -->
-				<div class="rounded-lg bg-white px-4 py-2 shadow-sm dark:bg-gray-800">
-					<div class="flex items-center gap-3">
-						<div class="text-sm text-gray-600 dark:text-gray-400">Progress</div>
-						<div class="flex items-center gap-2">
-							<div class="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
-								<div
-									class="h-2 rounded-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-									style="width: {overallProgress}%"
-								></div>
-							</div>
-							<span class="text-sm font-medium text-gray-900 dark:text-white">
-								{overallProgress}%
-							</span>
-						</div>
-					</div>
-				</div>
-				<ThemeToggle />
-			</div>
-		</div>
 	</div>
 
 	<!-- Tabs -->
