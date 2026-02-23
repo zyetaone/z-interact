@@ -11,7 +11,12 @@
 	const isWorldRoute = $derived(page.url.pathname.startsWith('/world'));
 	const isEditorRoute = $derived(page.url.pathname.startsWith('/editor'));
 	const isHomeRoute = $derived(page.url.pathname === '/' || page.url.pathname === base + '/');
-	const showNav = $derived(!isTableRoute && !isWorldRoute && !isEditorRoute && !isHomeRoute);
+	const isVideoEngineRoute = $derived(
+		page.url.pathname === '/video' || page.url.pathname === base + '/video'
+	);
+	const showNav = $derived(
+		!isTableRoute && !isWorldRoute && !isEditorRoute && !isHomeRoute && !isVideoEngineRoute
+	);
 
 	// Extract tableId from gallery route for breadcrumb
 	const galleryTableId = $derived(isGalleryRoute ? page.url.pathname.split('/').pop() : null);
@@ -61,7 +66,7 @@
 			</div>
 			<div class="flex items-center gap-3">
 				<a
-					href="{base}/"
+					href="{base}/workshop"
 					class="smooth-transition rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 {!isGalleryRoute
 						? 'bg-white/10 text-white'
 						: 'text-slate-400 hover:text-white'}"
