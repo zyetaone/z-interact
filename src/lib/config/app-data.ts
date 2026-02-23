@@ -53,7 +53,7 @@ export const defaultConfig: AppConfig = {
 		'Photorealistic architectural visualization of a complete modern workspace ecosystem.',
 
 	eventInfo: {
-		name: 'Zyeta x CORENET 2025',
+		name: 'Zyeta x CORENET 2026',
 		status: 'active' as const
 	},
 

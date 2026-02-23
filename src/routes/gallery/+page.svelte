@@ -86,7 +86,7 @@
 </script>
 
 <svelte:head>
-	<title>Zyeta x CORENET 2025 Gallery</title>
+	<title>Zyeta x CORENET 2026 Gallery</title>
 	<meta name="description" content="Beautiful gallery of AI-generated workspace designs" />
 </svelte:head>
 

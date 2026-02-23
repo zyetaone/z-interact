@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-	<title>Z-Interact - Gallery</title>
+	<title>Zyeta x CORENET 2026</title>
 	<meta name="description" content="Interactive workspace design gallery" />
 </svelte:head>
 

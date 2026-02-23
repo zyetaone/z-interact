@@ -6,8 +6,8 @@ pages_build_output_dir = ".svelte-kit/cloudflare"
 # D1 Database binding
 [[d1_databases]]
 binding = "z_interact_db"
-database_name = "z-interact-db"
-database_id = "42c899ea-ff0f-4c9e-adfd-bcd3a4ae4ffa"
+database_name = "z-workspace26-db"
+database_id = "328c883d-46d0-4817-b358-c38f35afa2a6"
 migrations_dir = "drizzle"
 
 # R2 Bucket binding for image storage
