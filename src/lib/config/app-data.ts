@@ -50,7 +50,7 @@ export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [
 // Default configuration data - personas, tables, and event info
 export const defaultConfig: AppConfig = {
 	masterSystemPrompt:
-		'Photorealistic architectural visualization of a complete modern workspace ecosystem.',
+		'Design an office which is relevant in 2033. Photorealistic architectural visualization of a complete future-forward workspace ecosystem.',
 
 	eventInfo: {
 		name: 'Zyeta x CORENET 2026',
@@ -62,21 +62,21 @@ export const defaultConfig: AppConfig = {
 			id: 'baby-boomer',
 			title: 'CXO Executive',
 			description:
-				'68-year-old CXO level executive in London, United Kingdom. Baby Boomer seeking to leave a meaningful legacy. Values trust, loyalty, legacy, and long-term stability in their workspace design.',
+				'68-year-old CXO level executive in Beijing, China. Baby Boomer — a seasoned individual wanting to leave a legacy. Values trust, loyalty, legacy, and long-term stability in their workspace design.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		'gen-x': {
 			id: 'gen-x',
 			title: 'Serial Entrepreneur',
 			description:
-				'55-year-old serial entrepreneur in Munich, Germany. Generation X leader jaded from city life, looking to offer meaning to their employees. Pragmatic, independent, adaptable, and strong steward of governance and knowledge.',
+				'55-year-old serial entrepreneur based in Kuala Lumpur, Malaysia. Generation X leader jaded from city life, looking to offer meaning to their employees. Pragmatic, independent, adaptable, and strong steward of governance and knowledge.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		millennial: {
 			id: 'millennial',
 			title: 'Head of R&D',
 			description:
-				'38-year-old Head of R&D at a Semiconductor MNC in Sunnyvale, North America. Millennial trying to create an office for maximum productivity. Purpose-driven, tech-savvy, and seeking work-life balance.',
+				'38-year-old Head of R&D at a Semiconductor Multinational Company in Singapore. Millennial trying to create an office for maximum productivity. Purpose-driven, tech-savvy, and seeking work-life balance.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		'gen-z': {
@@ -90,7 +90,7 @@ export const defaultConfig: AppConfig = {
 			id: 'gen-alpha',
 			title: 'Student Innovator',
 			description:
-				'20-year-old student innovator, intern, and tech enthusiast in Singapore. Gen Alpha looking forward to their first stint in a professional setting. Emerging, tech-immersed, globally minded, and climate-conscious.',
+				'20-year-old student innovator, tech enthusiast intern in Hong Kong. Gen Alpha looking forward to their first stint in a professional setting. Emerging, tech-immersed, globally minded, and climate-conscious.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		}
 	},
