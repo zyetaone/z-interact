@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { globalConfig, RENDERING_SPECS, updateEventInfo } from '$lib/stores/config-store.svelte';
+	import {
+		globalConfig,
+		RENDERING_SPECS,
+		SCENE_SETTING,
+		updateEventInfo
+	} from '$lib/stores/config-store.svelte';
 	import {
 		getWorkspace,
 		clearAllLocks,
@@ -648,7 +653,7 @@
 						>
 							<h4 class="mb-2 font-medium text-gray-900 dark:text-white">Scene Setting</h4>
 							<p class="font-mono text-sm whitespace-pre-wrap text-gray-600 dark:text-gray-400">
-								{globalConfig.masterSystemPrompt}
+								{SCENE_SETTING}
 							</p>
 						</div>
 						<div
