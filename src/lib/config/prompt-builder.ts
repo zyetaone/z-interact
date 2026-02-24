@@ -45,6 +45,14 @@ export class PromptBuilder {
 			parts.push(`Spatial atmosphere and emotional tone: ${formData.atmosphere}`);
 		}
 
+		if (formData.locationSetting) {
+			parts.push(`Location setting (country/urban/rural): ${formData.locationSetting}`);
+		}
+
+		if (formData.generationalCohorts) {
+			parts.push(`Generational cohorts within the office: ${formData.generationalCohorts}`);
+		}
+
 		if (formData.additionalFeatures) {
 			parts.push(`Distinctive features: ${formData.additionalFeatures}`);
 		}
@@ -145,6 +153,8 @@ export class PromptBuilder {
 			features: 10,
 			colorPalette: 5,
 			atmosphere: 5,
+			locationSetting: 5,
+			generationalCohorts: 5,
 			additionalFeatures: 0
 		};
 		return requirements[field] || 3;

@@ -25,6 +25,8 @@ function initializeWorkspaces() {
 				features: '',
 				colorPalette: '',
 				atmosphere: '',
+				locationSetting: '',
+				generationalCohorts: '',
 				additionalFeatures: ''
 			};
 

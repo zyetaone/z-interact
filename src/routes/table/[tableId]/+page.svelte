@@ -64,6 +64,8 @@
 			features: '',
 			colorPalette: '',
 			atmosphere: '',
+			locationSetting: '',
+			generationalCohorts: '',
 			additionalFeatures: ''
 		}
 	);

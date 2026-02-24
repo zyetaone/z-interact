@@ -106,6 +106,8 @@ export interface PromptFields {
 	features: string;
 	colorPalette: string;
 	atmosphere: string;
+	locationSetting: string;
+	generationalCohorts: string;
 	additionalFeatures: string;
 }
 

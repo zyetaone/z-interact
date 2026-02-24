@@ -38,6 +38,24 @@ export const DEFAULT_PROMPT_FIELDS: PromptFieldConfig[] = [
 		}
 	},
 	{
+		label: 'Location Setting: Country / Urban Dense / Rural?',
+		field: 'locationSetting',
+		fieldSuggestions: {
+			placeholder: 'Describe the setting — country, urban dense, rural, or a mix...',
+			suggestions:
+				'urban dense high-rise district, countryside retreat, suburban campus, coastal setting, mixed-use development'
+		}
+	},
+	{
+		label: 'Generational Cohorts within the office?',
+		field: 'generationalCohorts',
+		fieldSuggestions: {
+			placeholder: 'What mix of generations will work in this office?',
+			suggestions:
+				'multi-generational blend, predominantly Gen Z and Millennial, Baby Boomer mentors with Gen Alpha interns, all ages equally represented'
+		}
+	},
+	{
 		label: 'What else?',
 		field: 'additionalFeatures',
 		fieldSuggestions: {
@@ -62,35 +80,35 @@ export const defaultConfig: AppConfig = {
 			id: 'baby-boomer',
 			title: 'CXO Executive',
 			description:
-				'68-year-old CXO level executive in Beijing, China. Baby Boomer — a seasoned individual wanting to leave a legacy. Values trust, loyalty, legacy, and long-term stability in their workspace design.',
+				'You are a 68-year-old executive, CXO level living in Beijing, China. Problem Statement: Seasoned individual wanting to leave a legacy. Generational Identity: Baby Boomer.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		'gen-x': {
 			id: 'gen-x',
 			title: 'Serial Entrepreneur',
 			description:
-				'55-year-old serial entrepreneur based in Kuala Lumpur, Malaysia. Generation X leader jaded from city life, looking to offer meaning to their employees. Pragmatic, independent, adaptable, and strong steward of governance and knowledge.',
+				'You are a 55-year-old serial entrepreneur, based in Kuala Lumpur, Malaysia. Problem Statement: Jaded from city life, looking to offer meaning to their employees. Generational Identity: Generation X.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		millennial: {
 			id: 'millennial',
 			title: 'Head of R&D',
 			description:
-				'38-year-old Head of R&D at a Semiconductor Multinational Company in Singapore. Millennial trying to create an office for maximum productivity. Purpose-driven, tech-savvy, and seeking work-life balance.',
+				'You are a 38-year-old Head of R&D, Semiconductor Multinational Company, Singapore. Problem Statement: Trying to create an office for maximum productivity. Generational Identity: Millennial.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		'gen-z': {
 			id: 'gen-z',
 			title: 'AI Startup Founder',
 			description:
-				'27-year-old AI Startup Founder in Bangalore, India. Gen Z entrepreneur designing an office to spark innovation. Hyper-connected, digitally fluent, socially aware, and entrepreneurial.',
+				'You are a 27-year-old AI Startup Founder, Bangalore, India. Problem Statement: An office to spark innovation. Generational Identity: Gen Z.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		},
 		'gen-alpha': {
 			id: 'gen-alpha',
 			title: 'Student Innovator',
 			description:
-				'20-year-old student innovator, tech enthusiast intern in Hong Kong. Gen Alpha looking forward to their first stint in a professional setting. Emerging, tech-immersed, globally minded, and climate-conscious.',
+				'You are a 20-year-old student innovator, tech enthusiast intern, Hong Kong. Problem Statement: Looking forward to their first stint in a professional setting. Generational Identity: Gen Alpha.',
 			promptStructure: DEFAULT_PROMPT_FIELDS
 		}
 	},
