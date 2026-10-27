@@ -220,6 +220,19 @@ lockWorkspace(tableId);
 - `syncWorkspaces()` with timestamp tracking achieves similar UX
 - System stops polling when all tables have locked images
 
+## Architecture conventions
+
+Describes what the repo does today; apply to new code, don't refactor old code to match. Older generation of the event-app family (ADR-036: a new event is a fork of the template, never a merge).
+
+- **Imports**: `$lib/...` for cross-folder imports (no `#lib`); relative `./` / `../` inside a folder. Server-only code lives under `$lib/server/...`.
+- **One validator: Valibot** (`valibot` v1), already documented under "Validation Pattern" above. Do not add Zod/TypeBox.
+- **Server boundaries are remote functions** (`kit.experimental.remoteFunctions` is on in `svelte.config.js`), placed route-local as `src/routes/<area>/*.remote.ts` (`gallery`, `table`, `storage`). There is no `+page.server.ts`/`+server.ts`. A new one must validate input with a Valibot schema AND authenticate/authorize inside the boundary.
+- **Honest gap: no remote function authenticates.** `hooks.server.ts` only logs validation errors, and `gallery.remote.ts` takes a client-supplied `admin` boolean, so anyone can call admin-flavoured reads. Don't copy that; add a real check inside the boundary for new functions.
+- **Runes**: computed values use `$derived` / `$derived.by`, not `$effect` writes. Some existing components still reset local state inside `$effect` (e.g. `image-with-loader.svelte`, `persona-modal.svelte`); leave them, don't extend the pattern. `$effect` is for DOM/timer side effects with cleanup.
+- **Module-level `$state` singletons exist**: `stores/workspace-store.svelte.ts` (a `SvelteMap`), `config-store.svelte.ts` (`globalConfig`), `theme.svelte.ts`, `toast.svelte.ts`. They are process-global, which is unsafe for per-user state under SSR on Workers. Today they hold event-wide or UI state, so new per-user state should go through `setContext`/`getContext` (the root `+layout.svelte` already uses `setContext`), not a new module export.
+- **Tailwind v4 is present** (`@tailwindcss/vite`, no `tailwind.config`): `src/app.css` imports `tailwindcss` and the forms/typography/flowbite plugins. There is no `@theme` block yet; put new design tokens in an `@theme` block in `src/app.css`.
+- **Colocate by feature**: the layout is by kind (`lib/components`, `lib/stores`, `lib/validation`, `lib/server`) with `*.remote.ts` next to its route. Keep that as-is; put new feature-specific code beside its route or component folder rather than adding more catch-all directories.
+
 # important-instruction-reminders
 
 Do what has been asked; nothing more, nothing less.
